@@ -1,12 +1,12 @@
-# Moogle!
+# Moogle
 
-![](moogle.png)
+![project logo](moogle.png)
 
 > Proyecto de Programación I. Facultad de Matemática y Computación. Universidad de La Habana. Curso 2021.
 
-Moogle! es una aplicación *totalmente original* cuyo propósito es buscar inteligentemente un texto en un conjunto de documentos.
+Moogle! es una aplicación _totalmente original_ cuyo propósito es buscar inteligentemente un texto en un conjunto de documentos.
 
-Es una aplicación web, desarrollada con tecnología .NET Core 6.0, específicamente usando Blazor como *framework* web para la interfaz gráfica, y en el lenguaje C#.
+Es una aplicación web, desarrollada con tecnología .NET Core 6.0, específicamente usando Blazor como _framework_ web para la interfaz gráfica, y en el lenguaje C#.
 La aplicación está dividida en dos componentes fundamentales:
 
 - `MoogleServer` es un servidor web que renderiza la interfaz gráfica y sirve los resultados.
@@ -55,7 +55,7 @@ Queremos que la búsqueda sea lo más inteligente posible, por ese motivo no pod
 
 - En primer lugar, el usuario puede buscar no solo una palabra sino en general una frase cualquiera.
 - Si no aparecen todas las palabras de la frase en un documento, pero al menos aparecen algunas, este documento también queremos que sea devuelto, pero con un
-`score` menor mientras menos palabras aparezcan.
+  `score` menor mientras menos palabras aparezcan.
 - El orden en que aparezcan en el documento los términos del `query` en general no debe importar, ni siquiera que aparezcan en lugares totalmente diferentes del documento.
 - Si en diferentes documentos aparecen la misma cantidad de palabras de la consulta, (por ejemplo, 2 de las 3 palabras de la consulta `"algoritmos de ordenación"`), pero uno de ellos contiene una palabra más rara (por ejemplo, `"ordenación"` es más rara que `"algoritmos"` porque aparece en menos documentos), el documento con palabras más raras debe tener un `score` más alto, porque es una respuesta más específica.
 - De la misma forma, si un documento tiene más términos de la consulta que otro, en general debería tener un `score` más alto (a menos que sean términos menos relevantes).
@@ -97,7 +97,7 @@ Pero si nos quieres ayudar, eres libre de modificar la interfaz gráfica todo lo
 
 ## Sobre el contenido a buscar
 
-La idea original del proyecto es buscar en un conjunto de archivos de texto (con extensión `.txt`) que estén en la carpeta `Content`. Desgraciadamente, nuestro último programador que sabía cargar y leer archivos fue contratado por nuestra compañía enemiga *MoneySoft*. Por lo tanto, tendrás que lidiar con esta parte tú mismo.
+La idea original del proyecto es buscar en un conjunto de archivos de texto (con extensión `.txt`) que estén en la carpeta `Content`. Desgraciadamente, nuestro último programador que sabía cargar y leer archivos fue contratado por nuestra compañía enemiga _MoneySoft_. Por lo tanto, tendrás que lidiar con esta parte tú mismo.
 
 ## Ejecutando el proyecto
 
@@ -107,7 +107,7 @@ Lo primero que tendrás que hacer para poder trabajar en este proyecto es instal
 make dev
 ```
 
-Si estás en Windows, debes poder hacer lo mismo desde la terminal del WSL (Windows Subsystem for Linux). Si no tienes WSL ni posibilidad de instalarlo, deberías considerar seriamente instalar Linux, pero si de todas formas te empeñas en desarrollar el proyecto en Windows, el comando *ultimate* para ejecutar la aplicación es (desde la carpeta raíz del proyecto):
+Si estás en Windows, debes poder hacer lo mismo desde la terminal del WSL (Windows Subsystem for Linux). Si no tienes WSL ni posibilidad de instalarlo, deberías considerar seriamente instalar Linux, pero si de todas formas te empeñas en desarrollar el proyecto en Windows, el comando _ultimate_ para ejecutar la aplicación es (desde la carpeta raíz del proyecto):
 
 ```bash
 dotnet watch run --project MoogleServer
