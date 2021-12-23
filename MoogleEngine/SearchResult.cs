@@ -4,23 +4,27 @@ public class SearchResult
 {
     private SearchItem[] items;
 
-    public SearchResult(SearchItem[] items, string suggestion="")
+    public SearchResult(SearchItem[] items, string suggestion = "")
     {
-        if (items == null) {
+        if (items == null)
+        {
             throw new ArgumentNullException("items");
         }
+        Array.Sort(items);
 
         this.items = items;
         this.Suggestion = suggestion;
     }
 
-    public SearchResult() : this(new SearchItem[0]) {
+    public SearchResult() : this(new SearchItem[0])
+    {
 
     }
 
     public string Suggestion { get; private set; }
 
-    public IEnumerable<SearchItem> Items() {
+    public IEnumerable<SearchItem> Items()
+    {
         return this.items;
     }
 
