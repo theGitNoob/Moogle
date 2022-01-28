@@ -1,66 +1,90 @@
-﻿using System.Text;
-using System.Collections.Generic;
+﻿using DocumentModel;
+using System.Text;
 namespace MoogleEngine;
+
 public static class Moogle
 {
 
-    static Dictionary<String, int> wordList = new Dictionary<String, int>();
 
     public static void StartIndex()
     {
-        Console.WriteLine(Environment.GetEnvironmentVariables()["CONTENT_PATH"]);
+        // Console.WriteLine(Environment.GetEnvironmentVariables()["CONTENT_PATH"]);
 
         var files = Directory.EnumerateFiles("../Content", "*.txt");
+
+        files = files.OrderBy(file => file);
 
         foreach (string file in files)
         {
             ReadFile(file);
         }
 
-        Console.WriteLine(wordList.Count);
-
     }
 
-
-    private static void ReadFile(string filename)
+    private static void ReadFile(string filePath)
     {
-        StreamReader reader = new StreamReader(filename);
+        StreamReader reader = new StreamReader(filePath);
 
-        StreamWriter writer = new StreamWriter("pepe.txt");
 
         String fullText = reader.ReadToEnd();
 
-        String[] words = fullText.Split(new char[] { ' ', ',', '.', ';' });
 
-        foreach (string word in words)
-        {
-            String lowerWord = word.ToLower();
-            if (wordList.ContainsKey(lowerWord))
-            {
-                wordList[lowerWord]++;
-            }
-            else
-            {
-                wordList.Add(lowerWord, 1);
-            }
-        }
-
-        // foreach (KeyValuePair<string, int> pair in wordList)
-        // {
-        //     Console.WriteLine("The word: {0} appears {1} times on the collection", pair.Key, wordList[pair.Key]);
-        // }
+        Document doc = new Document(Path.GetFileName(filePath), fullText);
 
     }
     public static SearchResult Query(string query)
     {
-        // Modifique este método para responder a la búsqueda
 
-        SearchItem[] items = new SearchItem[3] {
-            new SearchItem("Rae.txt", "Rae score is 21.2", 21.2f),
-            new SearchItem("rockyou.txt", "My rockyou.txt score is 0.5", 0.5f),
-            new SearchItem("pepe.txt", "My pepe.txt score is 0.1", 0.1f),
-        };
 
-        return new SearchResult(items, query);
+
+
+        query = query.ToLower();
+
+
+
+        //Tokenized query terms
+        string[] terms = Document.Tokenize(query);
+
+        var result = Document.queryVector(terms);
+
+        SearchItem[] items = new SearchItem[result.Count];
+
+        for (int i = 0; i < result.Count; i++)
+        {
+            Tuple<string, string, double> t = result[i];
+
+            items[i] = new SearchItem(t.Item1, t.Item2, t.Item3);
+        }
+
+
+        StringBuilder newQuery = new StringBuilder();
+
+        foreach (string term in terms)
+        {
+            Console.WriteLine($"Get misspell of {term}");
+            string misspell = Document.getMisspell(term);
+
+
+            int misspellFreq = 0;
+            int termFreq = 0;
+            if (Document.termFreq.ContainsKey(term))
+            {
+
+                termFreq = Document.termFreq[term];
+            }
+
+
+            if (Document.termFreq.ContainsKey(misspell) && misspellFreq > termFreq && termFreq < 5)
+            {
+                misspellFreq = Document.termFreq[misspell];
+                newQuery.Append(misspell + " ");
+            }
+            else newQuery.Append(term + " ");
+
+
+        }
+        newQuery.Remove(newQuery.Length - 1, 1);
+        Array.Sort(items);
+        return new SearchResult(items, newQuery.ToString() == query ? "" : newQuery.ToString());
     }
 }
