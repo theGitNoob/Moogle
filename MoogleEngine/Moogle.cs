@@ -19,28 +19,23 @@ public static class Moogle
             ReadFile(file);
         }
 
+
+        Document.FillWeigths();
+
     }
 
     private static void ReadFile(string filePath)
     {
         StreamReader reader = new StreamReader(filePath);
 
-
         String fullText = reader.ReadToEnd();
-
 
         Document doc = new Document(Path.GetFileName(filePath), fullText);
 
     }
     public static SearchResult Query(string query)
     {
-
-
-
-
         query = query.ToLower();
-
-
 
         //Tokenized query terms
         string[] terms = Document.Tokenize(query);
@@ -61,22 +56,22 @@ public static class Moogle
 
         foreach (string term in terms)
         {
-            Console.WriteLine($"Get misspell of {term}");
+            // Console.WriteLine($"Get misspell of {term}");
             string misspell = Document.getMisspell(term);
 
 
             int misspellFreq = 0;
             int termFreq = 0;
-            if (Document.termFreq.ContainsKey(term))
+            if (Document.s_globalFreq.ContainsKey(term))
             {
 
-                termFreq = Document.termFreq[term];
+                termFreq = Document.s_globalFreq[term];
             }
 
 
-            if (Document.termFreq.ContainsKey(misspell) && misspellFreq > termFreq && termFreq < 5)
+            if (Document.s_globalFreq.ContainsKey(misspell) && misspellFreq > termFreq && termFreq < 5)
             {
-                misspellFreq = Document.termFreq[misspell];
+                misspellFreq = Document.s_globalFreq[misspell];
                 newQuery.Append(misspell + " ");
             }
             else newQuery.Append(term + " ");

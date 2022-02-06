@@ -3,6 +3,7 @@
 public class Document
 {
 
+    string[] trimmedWords;
 
     //Get the misspell for a given term
     public static string getMisspell(string term)
@@ -12,21 +13,18 @@ public class Document
         string word = "";
 
 
-        foreach (string key in termSet)
+        foreach (string key in s_termSet)
         {
             int ed = EditDistance(term, key);
             double f = 1 / (double)(ed + 1);
 
-            double score = f * getIDF(key);
-            if (key == "cuba" || key == "numa")
-                Console.WriteLine($"IDF for term {key} is: {getIDF(key)}\nAnd score is {f}");
+            double score = f * CalcIDF(key);
             if (score > med)
             {
                 med = score;
                 word = key;
             }
         }
-        Console.WriteLine($"Best score is: {med} and word is: {word}");
         return word;
     }
 
@@ -78,7 +76,7 @@ public class Document
     //A method used for tokenize both queries and text
     public static string[] Tokenize(string text)
     {
-        string[] words = text.Split(new char[] { ' ', '\n', '\t', '.' });
+        string[] words = text.Split(new char[] { ' ', '\n', '\t' });
 
         string[] tokens = new string[words.Length];
 
@@ -108,54 +106,60 @@ public class Document
         return tokens;
 
     }
-    private const int maxSnippetLength = 20;
     private string fullText;
     public string Title { get; private set; }
 
-    private Dictionary<String, List<int>> wordPos = new Dictionary<string, List<int>>();
 
-    //The collections of all the documents
-    public static List<Document> documentCollection = new List<Document>();
 
     //Max frequency of a a term in the document;
     int maxFrequency = 1;
 
-
     //Here is stored the ammount of documents that contains a given term
-    public static Dictionary<String, int> termFreq = new Dictionary<String, int>();
+    public static Dictionary<String, int> s_globalFreq = new Dictionary<String, int>();
 
+
+
+
+    //The collections of all the documents
+    public static List<Document> DocumentCollection = new List<Document>();
 
     //Cardinal of the document collecion
     static int documentsCnt = 0;
 
 
-    //Here is stored the frequency of a given term on the current document
-    public Dictionary<string, int> frequency = new Dictionary<String, int>();
 
+
+    public Dictionary<string, TermData> Data;
 
 
     //The set of all words in the corpus
-    static HashSet<string> termSet = new HashSet<String>();
+    static HashSet<string> s_termSet = new HashSet<String>();
     public Document(string title, string fullText)
     {
+
+        this.Data = new Dictionary<string, TermData>();
+
         this.fullText = fullText;
 
         fullText = fullText.ToLower();
 
+        this.trimmedWords = fullText.Split(new char[] { ' ', '\n', '\t' });
+
         string[] wordList = Tokenize(fullText);
 
-        Title = title;
+        this.Title = title;
 
 
         foreach (string term in wordList)
         {
-            termSet.Add(term);
+            s_termSet.Add(term);
 
-            if (frequency.ContainsKey(term))
+            if (Data.ContainsKey(term))
             {
-                frequency[term]++;
+                Data[term].frequency++;
 
-                int wordFreq = frequency[term];
+
+                int wordFreq = Data[term].frequency;
 
                 if (wordFreq > maxFrequency)
                 {
@@ -164,76 +168,67 @@ public class Document
             }
             else
             {
-                if (termFreq.ContainsKey(term))
+                Data.Add(term, new TermData(0, 1));
+
+                if (s_globalFreq.ContainsKey(term))
                 {
-                    termFreq[term]++;
+                    s_globalFreq[term]++;
                 }
                 else
                 {
-                    termFreq.Add(term, 1);
+                    s_globalFreq.Add(term, 1);
                 }
 
-                frequency.Add(term, 1);
             }
         }
 
 
         FillPostingList(wordList);
 
-        foreach (string key in postingList.Keys)
-        {
-
-            foreach (int item in postingList[key])
-            {
-                System.Console.Write(item + " ");
-            }
-            Console.WriteLine();
-        }
-
         documentsCnt++;
-        documentCollection.Add(this);
+
+        foreach (string term in Data.Keys)
+        {
+            Data[term].TF = (Double)Data[term].frequency / this.maxFrequency;
+        }
+        calcTF();
+
+        DocumentCollection.Add(this);
+
     }
 
-
-    // Calcs the Term Frequency
-    public double calcTF(string term)
+    public double GetTF(string term)
     {
-        double freq = 0;
-
-
-        //Gets the frequency of the term ${term} on the document if exists
-        // otherwise returns 0;
-        if (this.frequency.ContainsKey(term))
+        if (Data.ContainsKey(term))
+            return Data[term].TF;
+        return 0;
+    }
+    // Calcs the Term Frequency
+    public void calcTF()
+    {
+        foreach (string key in Data.Keys)
         {
-            freq = this.frequency[term];
+            Data[key].TF = (Double)Data[key].frequency / this.maxFrequency;
         }
-        else
-        {
-            return 0;
-        }
-
-        return freq / this.maxFrequency;
     }
 
     //Calcs the Inverse Document Frequency
-    public static double getIDF(string term)
+    public static double CalcIDF(string term)
     {
         int cnt = 0;
 
-        if (termFreq.ContainsKey(term))
+        if (s_globalFreq.ContainsKey(term))
         {
-            cnt = termFreq[term];
-            //Change to Log2
+            cnt = s_globalFreq[term];
             return Math.Log2((double)documentsCnt / cnt);
         }
 
         return 0;
     }
 
-
-    public double getWeigth(string term)
+    public double GetWeigth(string term)
     {
-        return calcTF(term) * getIDF(term);
+        return GetTF(term) * CalcIDF(term);
     }
 
 
@@ -241,159 +236,223 @@ public class Document
     {
 
         //This dictionary sholds the frequency of each term on the query
-        Dictionary<String, int> qTF = new Dictionary<String, int>();
-
-        int counter = 0;
-        string[] auxArr = new string[terms.Length + 1];
-
-        double[] qVector = new double[terms.Length + 1];
+        Dictionary<String, int> queryFreq = new Dictionary<String, int>();
 
         int maxL = 1;
+
         for (int i = 0; i < terms.Length; i++)
         {
-
             string term = terms[i];
 
-            // double a;
-
-            if (qTF.ContainsKey(term))
+            if (queryFreq.ContainsKey(term))
             {
-                qTF[term]++;
+                queryFreq[term]++;
 
-                //Change latter;
-                maxL = (maxL < qTF[term]) ? qTF[term] : maxL;
+                maxL = (maxL < queryFreq[term]) ? queryFreq[term] : maxL;
             }
             else
             {
-                auxArr[counter++] = term;
-                qTF.Add(term, 1);
+                queryFreq.Add(term, 1);
             }
 
         }
-
-        string[] singleTerms = new string[counter];
-
-        for (int i = 0; i < counter; i++)
-        {
-            singleTerms[i] = auxArr[i];
-        }
-
-
 
         List<Tuple<string, string, double>> results = new List<Tuple<string, string, double>>();
 
 
-        foreach (Document doc in documentCollection)
+        foreach (Document doc in DocumentCollection)
         {
 
             double dotProd = 0;
 
-            double qNorm = 0;
+            double queryNorm = 0;
             double docNorm = 0;
 
-            foreach (string term in doc.frequency.Keys)
+            foreach (string term in doc.Data.Keys)
             {
-                double w = doc.getWeigth(term);
+                double w = doc.GetWeigth(term);
                 docNorm += w * w;
             }
 
+            docNorm = Math.Sqrt(docNorm);
 
-
-            for (int i = 0; i < counter; i++)
+            foreach (string term in queryFreq.Keys)
             {
-                string term = singleTerms[i];
 
-                double freq = qTF[term];
+                double freq = queryFreq[term];
 
                 double query_tf = freq / maxL;
 
-                double query_idf = getIDF(term);
+                double query_idf = CalcIDF(term);
 
                 double query_weigth = query_tf * query_idf;
 
-                double doc_weigth = doc.getWeigth(term);
+                double doc_weigth = doc.GetWeigth(term);
 
                 dotProd += (doc_weigth * query_weigth);
 
-                qNorm += (query_weigth * query_weigth);
-
-                int x = (doc.frequency.ContainsKey(term)) ? doc.frequency[term] : 0;
-
-
+                queryNorm += (query_weigth * query_weigth);
 
             }
 
+            queryNorm = Math.Sqrt(queryNorm);
 
+            double normProd = (docNorm * queryNorm);
 
-            double normProd = (Math.Sqrt(docNorm) * Math.Sqrt(qNorm));
+            double cosin = (double)dotProd / normProd;
 
-
-
-            double angle = (double)dotProd / normProd;
-
-
-
-            if (!double.IsNaN(angle) && angle != 0)
+            if (!double.IsNaN(cosin) && cosin != 0)
             {
-                Tuple<string, string, double> tuple = new Tuple<string, string, double>(doc.Title, doc.getSnippet(terms), (angle));
+                Tuple<string, string, double> tuple = new Tuple<string, string, double>(doc.Title, doc.GetSnippet(terms), (cosin));
                 results.Add(tuple);
             }
 
         }
+
         return results;
 
     }
 
 
-
-    private string getSnippet(string[] terms)
+    private List<Tuple<int, int>> MergeList(List<Tuple<int, int>> l1, List<Tuple<int, int>> l2)
     {
-        string snippet = "";
+        List<Tuple<int, int>> sortedList = new List<Tuple<int, int>>();
 
-        int counter = 0;
-        int idx = -1;
+        int i = 0;
+        int j = 0;
 
-
-        foreach (string term in terms)
+        while (i < l1.Count && j < l2.Count)
         {
-            idx = this.fullText.IndexOf(term, StringComparison.OrdinalIgnoreCase);
-            if (idx != -1)
+            if (l1[i].Item1 <= l2[j].Item1)
             {
-                break;
+                sortedList.Add(l1[i++]);
+            }
+            else
+            {
+                sortedList.Add(l2[j++]);
             }
         }
-
-        for (; idx < this.fullText.Length && counter < 20; idx++)
+        while (i < l1.Count)
         {
-            string auxWord = "";
-            int j = idx;
-            while (j < this.fullText.Length)
-            {
-                char currChar = this.fullText[j];
-
-                auxWord += currChar;
-                if (!Char.IsLetterOrDigit(currChar))
-                {
-                    break;
-                }
-                j++;
-            }
-
-            counter++;
-            idx = j;
-            snippet += auxWord;
+            sortedList.Add(l1[i++]);
         }
 
-        if (idx < this.fullText.Length)
+        while (j < l2.Count)
         {
-            snippet += " ...";
+            sortedList.Add(l2[j++]);
         }
-        return snippet;
+
+        return sortedList;
 
     }
 
-    //
-    private Dictionary<string, List<int>> postingList = new Dictionary<string, List<int>>();
+    private string GetSnippet(string[] terms)
+    {
+        //Remove duplicate elements??
+        terms = terms.Distinct().ToArray();
+
+
+        List<Tuple<int, int>> SortedList = new List<Tuple<int, int>>();
+
+
+        int counter = 0;
+
+        foreach (string term in terms)
+        {
+            if (Data.ContainsKey(term))
+            {
+                List<Tuple<int, int>> auxList = new List<Tuple<int, int>>();
+
+                List<int> termList = Data[term].Positions;
+
+                foreach (int index in termList)
+                {
+                    auxList.Add(new Tuple<int, int>(index, counter));
+                }
+
+                SortedList = MergeList(SortedList, auxList);
+
+            }
+
+            counter++;
+        }
+
+
+        int[] freq = new int[counter];
+
+
+        Queue<Tuple<int, int>> queue = new Queue<Tuple<int, int>>();
+
+
+        int startIdx = 0;
+        int bestCnt = 0;
+
+        int onQueue = 0;
+
+        foreach (Tuple<int, int> item in SortedList)
+        {
+            int idx = item.Item1;
+            int id = item.Item2;
+
+            if (freq[id] == 0) onQueue++;
+
+            freq[id]++;
+
+            queue.Enqueue(item);
+
+            while (true)
+            {
+                System.Diagnostics.Debug.Assert(queue.Count != 0, "Hola Mundo");
+                Tuple<int, int> auxItem = queue.Peek();
+                if (freq[auxItem.Item2] > 1)
+                {
+                    freq[auxItem.Item2]--;
+                    queue.Dequeue();
+                }
+                else break;
+            }
+
+            if (onQueue > bestCnt && queue.Count <= 20)
+            {
+                bestCnt = onQueue;
+                startIdx = queue.Peek().Item1;
+            }
+
+        }
+
+
+        string snippet = "";
+
+
+        int endIdx = (fullText.Length - startIdx < 40) ? fullText.Length - startIdx : 40;
+
+
+
+        int addedWords = 0;
+        for (; startIdx < trimmedWords.Length && addedWords <= 20; startIdx++)
+        {
+            snippet += trimmedWords[startIdx] + " ";
+            addedWords++;
+
+        }
+
+        return snippet;
+
+    }
+    public static void FillWeigths()
+    {
+        foreach (string term in Document.s_globalFreq.Keys)
+        {
+            foreach (Document doc in Document.DocumentCollection)
+            {
+                if (doc.Data.ContainsKey(term))
+                {
+                    doc.Data[term].Weigth = doc.GetWeigth(term);
+                }
+
+            }
+        }
+    }
 
     private void FillPostingList(string[] wordlist)
     {
@@ -401,15 +460,35 @@ public class Document
         {
             string term = wordlist[index];
 
-            if (postingList.ContainsKey(term))
-            {
-                postingList[term].Append(index);
+            Data[term].AddPos(index);
 
-            }
-            else
-            {
-                postingList.Add(term, new List<int> { 1 });
-            }
         }
+    }
+}
+
+public class TermData
+{
+    public double tf;
+    public double TF { get { return tf; } set { tf = value; } }
+
+
+
+    public double Weigth { get; set; }
+
+    public int frequency;
+
+    public List<int> Positions;
+
+    public TermData(double tf = 0, int frequency = 0)
+    {
+        this.TF = tf;
+        this.frequency = frequency;
+        this.Positions = new List<int>();
+    }
+
+    public void AddPos(int position)
+    {
+        this.Positions.Add(position);
+
     }
 }
