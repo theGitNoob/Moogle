@@ -77,31 +77,40 @@ public class Document
         return distance[aLen, bLen];
     }
 
+
+    public static string[] RemoveScape(string text)
+    {
+        return text.Split(new char[] { ' ', '\n', '\t' });
+    }
+
+    public static string Trim(string term)
+    {
+        int lIndex = 0;
+        while (lIndex < term.Length && (char.IsLetterOrDigit(term[lIndex]) == false))
+        {
+            lIndex++;
+        }
+
+        int rIndex = term.Length - 1;
+        while (rIndex > lIndex && char.IsLetterOrDigit(term[rIndex]) == false)
+        {
+            rIndex--;
+        }
+
+        return term.Substring(lIndex, rIndex - lIndex + 1);
+    }
     //A method used for tokenize both queries and text
     public static string[] Tokenize(string text)
     {
-        string[] words = text.Split(new char[] { ' ', '\n', '\t' });
+        string[] terms = RemoveScape(text);
 
-        string[] tokens = new string[words.Length];
+        string[] tokens = new string[terms.Length];
 
         int counter = 0;
-        foreach (string word in words)
+
+        foreach (string term in terms)
         {
-            int lIndex = 0;
-            while (lIndex < word.Length && (char.IsLetterOrDigit(word[lIndex]) == false))
-            {
-                lIndex++;
-            }
-
-            if (lIndex == word.Length) continue;
-
-            int rIndex = word.Length - 1;
-            while (rIndex > lIndex && char.IsLetterOrDigit(word[rIndex]) == false)
-            {
-                rIndex--;
-            }
-
-            string token = word.Substring(lIndex, rIndex - lIndex + 1);
+            string token = Trim(term);
             tokens[counter++] = token;
         }
 
@@ -145,9 +154,10 @@ public class Document
 
         this.fullText = fullText;
 
+        this.trimmedWords = RemoveScape(fullText);
+
         fullText = fullText.ToLower();
 
-        this.trimmedWords = fullText.Split(new char[] { ' ', '\n', '\t' });
 
         string[] wordList = Tokenize(fullText);
 
@@ -236,7 +246,9 @@ public class Document
     }
 
 
-    public static List<Tuple<string, string, double>> queryVector(string[] terms)
+    public static List<Tuple<string, string, double>> queryVector(string[] terms, List<string> excludedTerms,
+    List<string> mandatoryTerms,
+    List<Tuple<string, int>> relevantTerms)
     {
 
         //This dictionary sholds the frequency of each term on the query
@@ -266,6 +278,28 @@ public class Document
 
         foreach (Document doc in DocumentCollection)
         {
+            bool skip = false;
+            foreach (string term in excludedTerms)
+            {
+                if (doc.ContainsTerm(term))
+                {
+                    skip = true;
+                    break;
+
+                }
+            }
+            if (skip) continue;
+
+            foreach (string term in mandatoryTerms)
+            {
+                if (!doc.ContainsTerm(term))
+                {
+                    skip = true;
+                    break;
+                }
+            }
+
+            if (skip) continue;
 
             double dotProd = 0;
 
@@ -458,6 +492,10 @@ public class Document
         }
     }
 
+    public bool ContainsTerm(string term)
+    {
+        return this.Data.ContainsKey(term);
+    }
     private void FillPostingList(string[] wordlist)
     {
         for (int index = 0; index < wordlist.Length; index++)
