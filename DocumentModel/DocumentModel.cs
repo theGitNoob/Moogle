@@ -16,7 +16,8 @@ public class Document
         foreach (string key in s_termSet)
         {
             int ed = EditDistance(term, key);
-            double f = 1 / (double)(ed + 1);
+            if (ed == 0) continue;
+            double f = 1 / (double)((ed));
 
             double score = f * CalcIDF(key);
             if (score > med)
@@ -31,6 +32,9 @@ public class Document
     //Calcs the EditDistance between two words
     public static int EditDistance(string a, string b)
     {
+
+        //TODO:Change edit distance to add weigth according to
+        //operations and the distance between letters on the keyboard
         int aLen = a.Length;
         int bLen = b.Length;
 

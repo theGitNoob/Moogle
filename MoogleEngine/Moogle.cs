@@ -56,7 +56,6 @@ public static class Moogle
 
         foreach (string term in terms)
         {
-            // Console.WriteLine($"Get misspell of {term}");
             string misspell = Document.getMisspell(term);
 
 
@@ -66,6 +65,11 @@ public static class Moogle
             {
 
                 termFreq = Document.s_globalFreq[term];
+            }
+            else
+            {
+                newQuery.Append(misspell + " ");
+                continue;
             }
 
 
