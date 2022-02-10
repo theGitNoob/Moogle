@@ -89,6 +89,8 @@ public static class Moogle
 
         StringBuilder newQuery = new StringBuilder();
 
+        bool flag = false;
+
         foreach (string term in terms)
         {
             string misspell = Document.getMisspell(term);
@@ -104,6 +106,7 @@ public static class Moogle
             else
             {
                 newQuery.Append(misspell + " ");
+                flag = true;
                 continue;
             }
 
@@ -112,15 +115,17 @@ public static class Moogle
             {
                 misspellFreq = Document.s_globalFreq[misspell];
                 newQuery.Append(misspell + " ");
+                flag = true;
             }
             else newQuery.Append(term + " ");
 
 
         }
 
-        newQuery.Remove(newQuery.Length - 1, 1);
+        if (newQuery.Length != 0)
+            newQuery.Remove(newQuery.Length - 1, 1);
         Array.Sort(items);
 
-        return new SearchResult(items, newQuery.ToString() == query ? "" : newQuery.ToString());
+        return new SearchResult(items, (flag) ? newQuery.ToString() : "");
     }
 }
