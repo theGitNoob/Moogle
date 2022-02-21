@@ -16,6 +16,8 @@ public static class Stemmer
 
     private static int GetRV(string term)
     {
+        if (term.Length <= 1) return -1;
+
         if (IsConsonant(term[1]))
         {
             for (int index = 2; index < term.Length; index++)
@@ -47,9 +49,10 @@ public static class Stemmer
     }
     private static int GetR2(string term)
     {
-        int index = GetR1(term) + 1;
+        int index = GetR1(term);
 
         if (index == -1) return -1;
+        index++;
 
         for (; index < term.Length; index++)
         {
