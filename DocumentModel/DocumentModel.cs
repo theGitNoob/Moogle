@@ -1,8 +1,13 @@
-﻿namespace DocumentModel;
+﻿
+namespace DocumentModel;
 
 using Stemmer;
+using System.Text.Json;
+
 public class Document
 {
+
+    private static Dictionary<string, int> Dic = new Dictionary<string, int>();
 
     string[] trimmedWords;
 
@@ -589,6 +594,37 @@ public class Document
             Data[term].AddPos(index);
 
         }
+    }
+
+
+    //Here is constructed the synonomus dictionary
+    public static void BuildDic(string path)
+    {
+        StreamReader reader = new StreamReader(path);
+        JsonDocument document = JsonDocument.Parse(reader.ReadToEnd());
+
+        JsonElement root = document.RootElement;
+
+        int index = 0;
+        foreach (JsonElement arr in root.EnumerateArray())
+        {
+            foreach (JsonElement syn in arr.EnumerateArray())
+            {
+                string auxTerm = Trim(syn.ToString()).ToLower();
+                Dic[auxTerm] = index;
+            }
+
+            index++;
+        }
+    }
+
+    private static string[] GetSynonomus(string term)
+    {
+        if (!Dic.ContainsKey(term)) return new string[0];
+
+        int idx = Dic[term];
+        string[] keys = Dic.Keys.Where((elem) => (Dic[elem] == idx && elem != term)).ToArray();
+        return keys;
     }
 }
 

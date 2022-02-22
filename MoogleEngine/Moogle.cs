@@ -1,5 +1,6 @@
 ﻿using DocumentModel;
 using System.Text;
+
 namespace MoogleEngine;
 
 public static class Moogle
@@ -10,6 +11,8 @@ public static class Moogle
     {
         // Console.WriteLine(Environment.GetEnvironmentVariables()["CONTENT_PATH"]);
 
+        Document.BuildDic("../sinonimos.json");
+
         var files = Directory.EnumerateFiles("../Content", "*.txt");
 
         files = files.OrderBy(file => file);
@@ -18,7 +21,6 @@ public static class Moogle
         {
             ReadFile(file);
         }
-
 
         Document.FillWeigths();
 
