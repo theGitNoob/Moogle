@@ -3,13 +3,12 @@ namespace MoogleEngine;
 public class SearchItem : IComparable
 {
 
-    public int CompareTo(Object obj)
+    public int CompareTo(Object? obj)
     {
-        if (obj == null) return 1;
+        SearchItem? aux = obj as SearchItem;
 
-        SearchItem aux = obj as SearchItem;
-
-        return (this.Score >= aux.Score) ? -1 : 1;
+        double score = aux!.Score;
+        return (this.Score >= score) ? -1 : 1;
 
     }
     public SearchItem(string title, string snippet, double score)
