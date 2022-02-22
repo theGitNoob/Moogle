@@ -1,5 +1,6 @@
 ﻿namespace DocumentModel;
 
+using Stemmer;
 public class Document
 {
 
@@ -8,6 +9,8 @@ public class Document
     //Get the misspell for a given term
     public static string getMisspell(string term)
     {
+
+        //TODO:Establecer un minimo de cambios que puedo hacer en dependencia de el tamaño de la palabra, ej: leon máximo dos cambios
         //med stands for minimum edit distance
         double med = 0;
         string word = "";
@@ -138,9 +141,7 @@ public class Document
 
     //Cardinal of the document collecion
     static int documentsCnt = 0;
-
-
-
+    static int DocumentsCnt { get { return DocumentCollection.Count; } set { } }
 
     public Dictionary<string, TermData> Data;
 
@@ -167,6 +168,7 @@ public class Document
         foreach (string term in wordList)
         {
             s_termSet.Add(term);
+            string root = Stemmer.Stemm(term);
 
             if (Data.ContainsKey(term))
             {
@@ -194,6 +196,36 @@ public class Document
                 }
 
             }
+
+            if (root != term)
+            {
+                if (Data.ContainsKey(root))
+                {
+                    Data[root].frequency++;
+
+
+                    int wordFreq = Data[root].frequency;
+
+                    if (wordFreq > maxFrequency)
+                    {
+                        maxFrequency = wordFreq;
+                    }
+                }
+                else
+                {
+                    Data.Add(root, new TermData(0, 1));
+
+                    if (s_globalFreq.ContainsKey(root))
+                    {
+                        s_globalFreq[root]++;
+                    }
+                    else
+                    {
+                        s_globalFreq.Add(root, 1);
+                    }
+
+                }
+            }
         }
 
 
@@ -205,6 +237,7 @@ public class Document
         {
             Data[term].TF = (Double)Data[term].frequency / this.maxFrequency;
         }
+
         calcTF();
 
         DocumentCollection.Add(this);
@@ -256,9 +289,18 @@ public class Document
 
         int maxL = 1;
 
+
+        //Used to check wheter the root of a term i given on the query
+        Dictionary<String, bool> isNotRoot = new Dictionary<string, bool>();
+
+
+        //Used to check wheter the synonomous of a term i given on the query
+        Dictionary<String, bool> isNotSyn = new Dictionary<string, bool>();
+
         for (int i = 0; i < terms.Length; i++)
         {
             string term = terms[i];
+            string root = Stemmer.Stemm(term);
 
             if (queryFreq.ContainsKey(term))
             {
@@ -269,6 +311,21 @@ public class Document
             else
             {
                 queryFreq.Add(term, 1);
+                isNotRoot.Add(term, true);
+                isNotSyn.Add(term, true);
+            }
+
+
+            //Populate root
+            if (queryFreq.ContainsKey(root))
+            {
+                queryFreq[root]++;
+
+                maxL = (maxL < queryFreq[root]) ? queryFreq[root] : maxL;
+            }
+            else
+            {
+                queryFreq.Add(root, 1);
             }
 
         }
@@ -317,20 +374,47 @@ public class Document
             foreach (string term in queryFreq.Keys)
             {
 
+
+                int idx = relevantTerms.FindIndex((val) => val.Item1 == term);
+
+                double relevance = idx == -1 ? 1 : relevantTerms[idx].Item2 + 1;
+
                 double freq = queryFreq[term];
 
                 double query_tf = freq / maxL;
 
                 double query_idf = CalcIDF(term);
 
-                double query_weigth = query_tf * query_idf;
+
+                bool isRoot = isNotRoot.ContainsKey(term) == false;
+                bool isSyn = isNotSyn.ContainsKey(term) == false && isRoot == false;
+
+                // System.Console.WriteLine($"{term} isRoot: {isRoot}, isSyn: {isSyn}");
+
+
+
+                double query_weigth = query_tf * query_idf * (relevance);
+
+                if (isRoot)
+                {
+                    query_weigth *= 0.5;
+                }
+                else if (isSyn)
+                {
+                    query_weigth *= 0.4;
+                }
 
                 double doc_weigth = doc.GetWeigth(term);
 
                 dotProd += (doc_weigth * query_weigth);
 
                 queryNorm += (query_weigth * query_weigth);
-
+            }
+            if (doc.Title == "d7.txt" || doc.Title == "d8.txt")
+            {
+                Console.WriteLine("---------------" + doc.Title + "---------------\n");
+                Console.WriteLine($"\tdoc norm is: {docNorm}");
+                Console.WriteLine($"\tquery norm is: {queryNorm}\n");
             }
 
             queryNorm = Math.Sqrt(queryNorm);
@@ -533,4 +617,5 @@ public class TermData
         this.Positions.Add(position);
 
     }
+
 }
