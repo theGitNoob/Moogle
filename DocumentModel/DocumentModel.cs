@@ -295,43 +295,82 @@ public class Document
         int maxL = 1;
 
 
-        //Used to check wheter the root of a term i given on the query
-        Dictionary<String, bool> isNotRoot = new Dictionary<string, bool>();
+        //Used to check wheter the normal form of a term is given on the query
+        HashSet<String> normalWords = new HashSet<string>();
 
 
-        //Used to check wheter the synonomous of a term i given on the query
-        Dictionary<String, bool> isNotSyn = new Dictionary<string, bool>();
+        //Used to check wheter the root of a term is given on the query
+        HashSet<String> stemmedWords = new HashSet<string>();
 
-        for (int i = 0; i < terms.Length; i++)
+        //Used to check wheter the synonomous of a term is given on the query
+        HashSet<String> relatedWords = new HashSet<string>();
+
+
+        //Populate first with original terms
+        foreach (string term in terms)
         {
-            string term = terms[i];
+            if (s_termSet.Contains(term))
+            {
+                if (queryFreq.ContainsKey(term))
+                {
+                    queryFreq[term]++;
+                    maxL = (maxL < queryFreq[term]) ? queryFreq[term] : maxL;
+                }
+                else
+                {
+                    queryFreq.Add(term, 1);
+                    normalWords.Add(term);
+                }
+            }
+        }
+
+        //Augment the query with the root of each term if thet exists on corpus
+        foreach (string term in terms)
+        {
             string root = Stemmer.Stemm(term);
 
-            if (queryFreq.ContainsKey(term))
+            if (s_termSet.Contains(root))
             {
-                queryFreq[term]++;
-
-                maxL = (maxL < queryFreq[term]) ? queryFreq[term] : maxL;
+                if (queryFreq.ContainsKey(root))
+                {
+                    queryFreq[root]++;
+                    maxL = (maxL < queryFreq[root]) ? queryFreq[root] : maxL;
+                }
+                else
+                {
+                    queryFreq.Add(root, 1);
+                    if (!normalWords.Contains(root))
+                        stemmedWords.Add(term);
+                }
             }
-            else
+        }
+
+        //Populate with synonyms if they exists on corpus
+        foreach (string term in terms)
+        {
+            string[] syns = GetSynonomus(term);
+
+            foreach (string syn in syns)
             {
-                queryFreq.Add(term, 1);
-                isNotRoot.Add(term, true);
-                isNotSyn.Add(term, true);
+                if (s_termSet.Contains(syn))
+                {
+                    if (queryFreq.ContainsKey(syn))
+                    {
+                        queryFreq[syn]++;
+                        maxL = (maxL < queryFreq[syn]) ? queryFreq[syn] : maxL;
+                    }
+                    else
+                    {
+                        queryFreq.Add(syn, 1);
+                        if (normalWords.Contains(syn) == false && stemmedWords.Contains(term) == false)
+                            relatedWords.Add(syn);
+                    }
+                }
             }
 
 
-            //Populate root
-            if (queryFreq.ContainsKey(root))
-            {
-                queryFreq[root]++;
 
-                maxL = (maxL < queryFreq[root]) ? queryFreq[root] : maxL;
-            }
-            else
-            {
-                queryFreq.Add(root, 1);
-            }
+
 
         }
 
@@ -379,7 +418,6 @@ public class Document
             foreach (string term in queryFreq.Keys)
             {
 
-
                 int idx = relevantTerms.FindIndex((val) => val.Item1 == term);
 
                 double relevance = idx == -1 ? 1 : relevantTerms[idx].Item2 + 1;
@@ -390,13 +428,8 @@ public class Document
 
                 double query_idf = CalcIDF(term);
 
-
-                bool isRoot = isNotRoot.ContainsKey(term) == false;
-                bool isSyn = isNotSyn.ContainsKey(term) == false && isRoot == false;
-
-                // System.Console.WriteLine($"{term} isRoot: {isRoot}, isSyn: {isSyn}");
-
-
+                bool isRoot = normalWords.Contains(term) == false && stemmedWords.Contains(term) == true;
+                bool isSyn = isRoot == false && normalWords.Contains(term) == false && relatedWords.Contains(term) == true;
 
                 double query_weigth = query_tf * query_idf * (relevance);
 
@@ -414,12 +447,6 @@ public class Document
                 dotProd += (doc_weigth * query_weigth);
 
                 queryNorm += (query_weigth * query_weigth);
-            }
-            if (doc.Title == "d7.txt" || doc.Title == "d8.txt")
-            {
-                Console.WriteLine("---------------" + doc.Title + "---------------\n");
-                Console.WriteLine($"\tdoc norm is: {docNorm}");
-                Console.WriteLine($"\tquery norm is: {queryNorm}\n");
             }
 
             queryNorm = Math.Sqrt(queryNorm);
@@ -608,13 +635,28 @@ public class Document
         int index = 0;
         foreach (JsonElement arr in root.EnumerateArray())
         {
+
+            int auxIdx = -1;
+
             foreach (JsonElement syn in arr.EnumerateArray())
             {
                 string auxTerm = Trim(syn.ToString()).ToLower();
-                Dic[auxTerm] = index;
+
+                if (Dic.ContainsKey(auxTerm))
+                {
+                    auxIdx = Dic[auxTerm];
+                    break;
+                }
             }
 
-            index++;
+
+            foreach (JsonElement syn in arr.EnumerateArray())
+            {
+                string auxTerm = Trim(syn.ToString()).ToLower();
+                Dic[auxTerm] = (auxIdx == -1) ? index : auxIdx;
+            }
+            if (auxIdx == -1)
+                index++;
         }
     }
 
