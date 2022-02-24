@@ -365,7 +365,7 @@ public static class Stemmer
             if (term.EndsWith("gu" + longestSuffix) && LiesOnInterval(rv, term.Length - (longestSuffix.Length + 1)))
                 term = term.Remove(term.Length - (longestSuffix.Length + 1));
             else
-                term.Remove(term.Length, term.Length - longestSuffix.Length);
+               term =  term.Remove(term.Length - longestSuffix.Length);
 
             return;
 
