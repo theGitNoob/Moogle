@@ -289,7 +289,29 @@ public class Document
     List<Tuple<string, int>> relevantTerms)
     {
 
-        //This dictionary sholds the frequency of each term on the query
+
+        //Augment relevant terms
+        List<Tuple<string, int>> auxList = new List<Tuple<string, int>>();
+
+        foreach (Tuple<string, int> item in relevantTerms)
+        {
+            string[] syns = GetSynonomus(item.Item1);
+
+            foreach (string syn in syns)
+            {
+                if (s_termSet.Contains(syn) && item.Item2 > 1)
+                {
+                    System.Console.WriteLine(syn);
+                    auxList.Add(Tuple.Create(syn, item.Item2 - 1));
+                }
+            }
+        }
+
+        //Remove elements not in corpus
+        relevantTerms.RemoveAll((elem) => !s_termSet.Contains(elem.Item1));
+        relevantTerms.AddRange(auxList.Distinct());
+
+        //This dictionary holds the frequency of each term on the query
         Dictionary<String, int> queryFreq = new Dictionary<String, int>();
 
         int maxL = 1;

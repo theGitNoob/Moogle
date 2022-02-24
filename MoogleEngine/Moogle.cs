@@ -73,6 +73,9 @@ public static class Moogle
             }
         }
 
+        excludedTerms = excludedTerms.Distinct().ToList();
+        mandatoryTerms = mandatoryTerms.Distinct().ToList();
+        relevantTerms = relevantTerms.Distinct().ToList();
 
         //Tokenized query terms
         string[] terms = Document.Tokenize(query);
