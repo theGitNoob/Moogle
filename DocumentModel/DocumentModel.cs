@@ -24,13 +24,16 @@ public class Document
         string word = "";
 
 
-        foreach (string key in s_termSet)
+        foreach (string key in s_globalFreq.Keys)
         {
             int ed = EditDistance(term, key);
+
             if (ed == 0) continue;
+
             double f = 1 / (double)((ed));
 
             double score = f * CalcIDF(key);
+
             if (score > med)
             {
                 med = score;
@@ -143,20 +146,14 @@ public class Document
     public static Dictionary<String, int> s_globalFreq = new Dictionary<String, int>();
 
 
-
-
     //The collections of all the documents
     public static List<Document> DocumentCollection = new List<Document>();
 
     //Cardinal of the document collecion
-    static int documentsCnt = 0;
     static int DocumentsCnt { get { return DocumentCollection.Count; } set { } }
 
     public Dictionary<string, TermData> Data;
 
-
-    //The set of all words in the corpus
-    static HashSet<string> s_termSet = new HashSet<String>();
     public Document(string title, string fullText)
     {
 
@@ -174,7 +171,6 @@ public class Document
 
         foreach (string term in wordList)
         {
-            s_termSet.Add(term);
             string root = Stemmer.Stemm(term);
 
             if (Data.ContainsKey(term))
@@ -237,8 +233,6 @@ public class Document
 
         FillPostingList(wordList);
 
-        documentsCnt++;
-
         foreach (string term in Data.Keys)
         {
             Data[term].TF = (Double)Data[term].frequency / this.maxFrequency;
@@ -273,7 +267,7 @@ public class Document
         if (s_globalFreq.ContainsKey(term))
         {
             cnt = s_globalFreq[term];
-            return Math.Log2((double)documentsCnt / cnt);
+            return Math.Log2((double)DocumentsCnt / cnt);
         }
 
         return 0;
@@ -304,7 +298,7 @@ public class Document
 
                 foreach (string syn in syns)
                 {
-                    if (s_termSet.Contains(syn) && item.Item2 > 1)
+                    if (s_globalFreq.ContainsKey(syn) && item.Item2 > 1)
                     {
                         auxList.Add(Tuple.Create(syn, item.Item2 - 1));
                     }
@@ -313,7 +307,7 @@ public class Document
         }
 
         //Remove elements not in corpus
-        relevantTerms.RemoveAll((elem) => !s_termSet.Contains(elem.Item1));
+        relevantTerms.RemoveAll((elem) => !s_globalFreq.ContainsKey(elem.Item1));
         relevantTerms.AddRange(auxList.Distinct());
 
         //This dictionary holds the frequency of each term on the query
@@ -333,7 +327,7 @@ public class Document
 
         foreach (string term in terms)
         {
-            if (s_termSet.Contains(term))
+            if (s_globalFreq.ContainsKey(term))
             {
                 if (queryFreq.ContainsKey(term))
                 {
@@ -355,7 +349,7 @@ public class Document
             {
                 string root = Stemmer.Stemm(term);
 
-                if (s_termSet.Contains(root))
+                if (s_globalFreq.ContainsKey(root))
                 {
                     if (queryFreq.ContainsKey(root))
                     {
@@ -381,7 +375,7 @@ public class Document
 
                 foreach (string syn in syns)
                 {
-                    if (s_termSet.Contains(syn))
+                    if (s_globalFreq.ContainsKey(syn))
                     {
                         if (queryFreq.ContainsKey(syn))
                         {
@@ -749,7 +743,6 @@ public class Document
 
         int index = 0;
 
-
         foreach (JsonElement arr in root.EnumerateArray())
         {
             List<string> l = new List<string>();
@@ -769,7 +762,6 @@ public class Document
                     SynonomusPositions.Add(auxTerm, new List<int> { index });
                 }
             }
-
 
             Syns.Add(l);
 
@@ -798,9 +790,6 @@ public class TermData
 {
     public double tf;
     public double TF { get { return tf; } set { tf = value; } }
-
-
-
     public double Weigth { get; set; }
 
     public int frequency;
