@@ -8,7 +8,9 @@ using System.Collections;
 public class Document
 {
 
-    private static Dictionary<string, int> Dic = new Dictionary<string, int>();
+    private static Dictionary<string, List<int>> SynonomusPositions = new Dictionary<string, List<int>>();
+
+    private static List<List<string>> Syns = new List<List<string>>();
 
     string[] trimmedWords;
 
@@ -740,45 +742,55 @@ public class Document
     public static void BuildDic(string path)
     {
         StreamReader reader = new StreamReader(path);
+
         JsonDocument document = JsonDocument.Parse(reader.ReadToEnd());
 
         JsonElement root = document.RootElement;
 
         int index = 0;
+
+
         foreach (JsonElement arr in root.EnumerateArray())
         {
-
-            int auxIdx = -1;
+            List<string> l = new List<string>();
 
             foreach (JsonElement syn in arr.EnumerateArray())
             {
                 string auxTerm = Trim(syn.ToString()).ToLower();
 
-                if (Dic.ContainsKey(auxTerm))
+                l.Add(auxTerm);
+
+                if (SynonomusPositions.ContainsKey(auxTerm))
                 {
-                    auxIdx = Dic[auxTerm];
-                    break;
+                    SynonomusPositions[auxTerm].Add(index);
+                }
+                else
+                {
+                    SynonomusPositions.Add(auxTerm, new List<int> { index });
                 }
             }
 
 
-            foreach (JsonElement syn in arr.EnumerateArray())
-            {
-                string auxTerm = Trim(syn.ToString()).ToLower();
-                Dic[auxTerm] = (auxIdx == -1) ? index : auxIdx;
-            }
-            if (auxIdx == -1)
-                index++;
+            Syns.Add(l);
+
+            index++;
         }
     }
 
-    private static string[] GetSynonomus(string term)
+    public static string[] GetSynonomus(string term)
     {
-        if (!Dic.ContainsKey(term)) return new string[0];
+        if (!SynonomusPositions.ContainsKey(term)) return new string[0];
 
-        int idx = Dic[term];
-        string[] keys = Dic.Keys.Where((elem) => (Dic[elem] == idx && elem != term)).ToArray();
-        return keys;
+        List<int> positions = SynonomusPositions[term];
+
+        List<string> syns = new List<string>();
+
+        foreach (int pos in positions)
+        {
+            syns.AddRange(Syns[pos]);
+        }
+
+        return syns.ToArray();
     }
 }
 
