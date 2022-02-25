@@ -3,6 +3,7 @@ namespace DocumentModel;
 
 using Stemmer;
 using System.Text.Json;
+using System.Collections;
 
 public class Document
 {
@@ -119,6 +120,7 @@ public class Document
         foreach (string term in terms)
         {
             string token = Trim(term);
+            if (token.Length == 0) continue;
             tokens[counter++] = token;
         }
 
@@ -164,11 +166,9 @@ public class Document
 
         fullText = fullText.ToLower();
 
-
         string[] wordList = Tokenize(fullText);
 
         this.Title = title;
-
 
         foreach (string term in wordList)
         {
@@ -233,7 +233,6 @@ public class Document
             }
         }
 
-
         FillPostingList(wordList);
 
         documentsCnt++;
@@ -286,23 +285,27 @@ public class Document
 
     public static List<Tuple<string, string, double>> queryVector(string[] terms, List<string> excludedTerms,
     List<string> mandatoryTerms,
-    List<Tuple<string, int>> relevantTerms)
+    List<Tuple<string, int>> relevantTerms, List<string[]> nearTerms)
     {
 
+        bool showSyns = nearTerms.Count == 0;
 
         //Augment relevant terms
         List<Tuple<string, int>> auxList = new List<Tuple<string, int>>();
 
-        foreach (Tuple<string, int> item in relevantTerms)
-        {
-            string[] syns = GetSynonomus(item.Item1);
 
-            foreach (string syn in syns)
+        if (showSyns)
+        {
+            foreach (Tuple<string, int> item in relevantTerms)
             {
-                if (s_termSet.Contains(syn) && item.Item2 > 1)
+                string[] syns = GetSynonomus(item.Item1);
+
+                foreach (string syn in syns)
                 {
-                    System.Console.WriteLine(syn);
-                    auxList.Add(Tuple.Create(syn, item.Item2 - 1));
+                    if (s_termSet.Contains(syn) && item.Item2 > 1)
+                    {
+                        auxList.Add(Tuple.Create(syn, item.Item2 - 1));
+                    }
                 }
             }
         }
@@ -320,15 +323,12 @@ public class Document
         //Used to check wheter the normal form of a term is given on the query
         HashSet<String> normalWords = new HashSet<string>();
 
-
         //Used to check wheter the root of a term is given on the query
         HashSet<String> stemmedWords = new HashSet<string>();
 
         //Used to check wheter the synonomous of a term is given on the query
         HashSet<String> relatedWords = new HashSet<string>();
 
-
-        //Populate first with original terms
         foreach (string term in terms)
         {
             if (s_termSet.Contains(term))
@@ -346,58 +346,58 @@ public class Document
             }
         }
 
-        //Augment the query with the root of each term if thet exists on corpus
-        foreach (string term in terms)
+        //Augment the query with the root of each term if thet exists on corpus if closeness operator is not present
+        if (showSyns)
         {
-            string root = Stemmer.Stemm(term);
-
-            if (s_termSet.Contains(root))
+            foreach (string term in terms)
             {
-                if (queryFreq.ContainsKey(root))
-                {
-                    queryFreq[root]++;
-                    maxL = (maxL < queryFreq[root]) ? queryFreq[root] : maxL;
-                }
-                else
-                {
-                    queryFreq.Add(root, 1);
-                    if (!normalWords.Contains(root))
-                        stemmedWords.Add(term);
-                }
-            }
-        }
+                string root = Stemmer.Stemm(term);
 
-        //Populate with synonyms if they exists on corpus
-        foreach (string term in terms)
-        {
-            string[] syns = GetSynonomus(term);
-
-            foreach (string syn in syns)
-            {
-                if (s_termSet.Contains(syn))
+                if (s_termSet.Contains(root))
                 {
-                    if (queryFreq.ContainsKey(syn))
+                    if (queryFreq.ContainsKey(root))
                     {
-                        queryFreq[syn]++;
-                        maxL = (maxL < queryFreq[syn]) ? queryFreq[syn] : maxL;
+                        queryFreq[root]++;
+                        maxL = (maxL < queryFreq[root]) ? queryFreq[root] : maxL;
                     }
                     else
                     {
-                        queryFreq.Add(syn, 1);
-                        if (normalWords.Contains(syn) == false && stemmedWords.Contains(term) == false)
-                            relatedWords.Add(syn);
+                        queryFreq.Add(root, 1);
+                        if (!normalWords.Contains(root))
+                            stemmedWords.Add(term);
                     }
                 }
             }
+        }
 
+        //Populate with synonyms if they exists on corpus if closeness operator is not present
+        if (showSyns)
+        {
+            foreach (string term in terms)
+            {
+                string[] syns = GetSynonomus(term);
 
-
-
-
+                foreach (string syn in syns)
+                {
+                    if (s_termSet.Contains(syn))
+                    {
+                        if (queryFreq.ContainsKey(syn))
+                        {
+                            queryFreq[syn]++;
+                            maxL = (maxL < queryFreq[syn]) ? queryFreq[syn] : maxL;
+                        }
+                        else
+                        {
+                            queryFreq.Add(syn, 1);
+                            if (normalWords.Contains(syn) == false && stemmedWords.Contains(term) == false)
+                                relatedWords.Add(syn);
+                        }
+                    }
+                }
+            }
         }
 
         List<Tuple<string, string, double>> results = new List<Tuple<string, string, double>>();
-
 
         foreach (Document doc in DocumentCollection)
         {
@@ -471,11 +471,16 @@ public class Document
                 queryNorm += (query_weigth * query_weigth);
             }
 
+
+            int multiplier = FindClosestScore(nearTerms, doc);
+
             queryNorm = Math.Sqrt(queryNorm);
 
             double normProd = (docNorm * queryNorm);
 
             double cosin = (double)dotProd / normProd;
+
+            cosin *= multiplier;
 
             if (!double.IsNaN(cosin) && cosin != 0)
             {
@@ -490,7 +495,7 @@ public class Document
     }
 
 
-    private List<Tuple<int, int>> MergeList(List<Tuple<int, int>> l1, List<Tuple<int, int>> l2)
+    private static List<Tuple<int, int>> MergeList(List<Tuple<int, int>> l1, List<Tuple<int, int>> l2)
     {
         List<Tuple<int, int>> sortedList = new List<Tuple<int, int>>();
 
@@ -633,6 +638,91 @@ public class Document
     public bool ContainsTerm(string term)
     {
         return this.Data.ContainsKey(term);
+    }
+
+    private static int FindClosestScore(List<string[]> nearTerms, Document doc)
+    {
+        int MaxDistance = 0;
+        int totalDistance = 0;
+
+        foreach (var items in nearTerms)
+        {
+            int counter = 0;
+
+            var dic = items.ToDictionary((key) => key, (key) => counter++);
+
+            List<Tuple<int, int>> positions = new List<Tuple<int, int>>();
+
+            bool calcDistance = true;
+
+            foreach (var item in dic)
+            {
+
+                string term = item.Key;
+
+                if (!doc.Data.ContainsKey(term))
+                {
+                    calcDistance = false;
+                    break;
+                }
+
+                MaxDistance += 20;
+
+                List<int> termPositions = doc.Data[term].Positions;
+
+                List<Tuple<int, int>> newPositions = new List<Tuple<int, int>>();
+
+                foreach (int pos in termPositions)
+                {
+                    newPositions.Add(Tuple.Create(pos, item.Value));
+                }
+
+                positions = MergeList(positions, newPositions);
+            }
+            if (!calcDistance) continue;
+
+            int[] onQueue = new int[counter];
+
+            Queue<Tuple<int, int>> queue = new Queue<Tuple<int, int>>();
+
+            int best = int.MaxValue;
+
+            int cnt = 0;
+
+            foreach (var item in positions)
+            {
+                int position = item.Item1;
+
+                int id = item.Item2;
+
+                queue.Enqueue(item);
+
+
+                if (onQueue[id] == 0) cnt++;
+
+                onQueue[id]++;
+
+                while (true)
+                {
+                    int firsItemId = queue.Peek().Item2;
+
+                    if (onQueue[firsItemId] > 1)
+                    {
+                        queue.Dequeue();
+                        onQueue[firsItemId]--;
+                    }
+                    else break;
+                }
+                if (cnt == counter)
+                {
+                    best = Math.Min(best, position - queue.Peek().Item1);
+                }
+            }
+            totalDistance += best;
+        }
+
+        return (totalDistance == 0) ? 1 : MaxDistance / totalDistance;
+
     }
     private void FillPostingList(string[] wordlist)
     {

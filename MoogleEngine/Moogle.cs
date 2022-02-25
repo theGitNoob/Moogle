@@ -46,11 +46,13 @@ public static class Moogle
         List<Tuple<string, int>> relevantTerms = new List<Tuple<string, int>>();
 
         //TODO:Cercania
-        // List<List<String>> cl
+        List<string[]> nearTerms = new List<string[]>();
 
         for (int idx = 0; idx < unescapedWord.Length; idx++)
         {
             string term = unescapedWord[idx];
+
+            if (term.Length == 0) continue;
 
             string trimmed = Document.Trim(term);
             switch (term[0])
@@ -73,6 +75,24 @@ public static class Moogle
             }
         }
 
+        foreach (string cad in unescapedWord)
+        {
+            string[] nearby = cad.Split("~").Distinct().ToArray();
+
+            if (nearby.Length == 1) continue;
+
+            StringBuilder auxCad = new StringBuilder();
+
+            foreach (string term in nearby)
+            {
+                auxCad.Append(term + " ");
+            }
+
+            query = query.Replace(cad, auxCad.ToString());
+
+            nearTerms.Add(nearby);
+        }
+
         excludedTerms = excludedTerms.Distinct().ToList();
         mandatoryTerms = mandatoryTerms.Distinct().ToList();
         relevantTerms = relevantTerms.Distinct().ToList();
@@ -80,7 +100,7 @@ public static class Moogle
         //Tokenized query terms
         string[] terms = Document.Tokenize(query);
 
-        var result = Document.queryVector(terms, excludedTerms, mandatoryTerms, relevantTerms);
+        var result = Document.queryVector(terms, excludedTerms, mandatoryTerms, relevantTerms, nearTerms);
 
         SearchItem[] items = new SearchItem[result.Count];
 
