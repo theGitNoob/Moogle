@@ -3,6 +3,8 @@
 public static class Stemmer
 {
 
+    private static Dictionary<string, string> Stems = new Dictionary<string, string>();
+
     private static bool IsVowel(char letter)
     {
         return SnowBallData.Vowels.Contains(letter);
@@ -365,7 +367,7 @@ public static class Stemmer
             if (term.EndsWith("gu" + longestSuffix) && LiesOnInterval(rv, term.Length - (longestSuffix.Length + 1)))
                 term = term.Remove(term.Length - (longestSuffix.Length + 1));
             else
-               term =  term.Remove(term.Length - longestSuffix.Length);
+                term = term.Remove(term.Length - longestSuffix.Length);
 
             return;
 
@@ -374,6 +376,12 @@ public static class Stemmer
     }
     public static string Stemm(string term)
     {
+        string originalTerm = term;
+
+        if (Stems.ContainsKey(term))
+        {
+            return Stems[term];
+        }
 
         term = Step0(term);
 
@@ -391,6 +399,7 @@ public static class Stemmer
 
         Step3(ref term);
 
+        Stems[originalTerm] = term;
         return term;
     }
 
