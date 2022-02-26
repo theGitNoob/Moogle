@@ -118,7 +118,7 @@ public static class Moogle
 
         foreach (string term in terms)
         {
-            string misspell = Document.getMisspell(term);
+            string misspell = Document.GetMisspell(term);
 
 
             int misspellFreq = 0;
