@@ -152,7 +152,7 @@ public class Document
     //Cardinal of the document collecion
     static int DocumentsCnt { get { return DocumentCollection.Count; } set { } }
 
-    public Dictionary<string, TermData> Data;
+    private Dictionary<string, TermData> Data;
 
     public Document(string title, string fullText)
     {
@@ -173,70 +173,15 @@ public class Document
         {
             string root = Stemmer.Stemm(term);
 
-            if (Data.ContainsKey(term))
-            {
-                Data[term].frequency++;
-
-
-                int wordFreq = Data[term].frequency;
-
-                if (wordFreq > maxFrequency)
-                {
-                    maxFrequency = wordFreq;
-                }
-            }
-            else
-            {
-                Data.Add(term, new TermData(0, 1));
-
-                if (s_globalFreq.ContainsKey(term))
-                {
-                    s_globalFreq[term]++;
-                }
-                else
-                {
-                    s_globalFreq.Add(term, 1);
-                }
-
-            }
+            AddTerm(term);
 
             if (root != term)
             {
-                if (Data.ContainsKey(root))
-                {
-                    Data[root].frequency++;
-
-
-                    int wordFreq = Data[root].frequency;
-
-                    if (wordFreq > maxFrequency)
-                    {
-                        maxFrequency = wordFreq;
-                    }
-                }
-                else
-                {
-                    Data.Add(root, new TermData(0, 1));
-
-                    if (s_globalFreq.ContainsKey(root))
-                    {
-                        s_globalFreq[root]++;
-                    }
-                    else
-                    {
-                        s_globalFreq.Add(root, 1);
-                    }
-
-                }
+                AddTerm(root);
             }
         }
 
-        FillPostingList(wordList);
-
-        foreach (string term in Data.Keys)
-        {
-            Data[term].TF = (Double)Data[term].frequency / this.maxFrequency;
-        }
+        FillPostionsList(wordList);
 
         calcTF();
 
@@ -244,6 +189,34 @@ public class Document
 
     }
 
+    private void AddTerm(string term)
+    {
+        if (Data.ContainsKey(term))
+        {
+            Data[term].frequency++;
+
+            int wordFreq = Data[term].frequency;
+
+            if (wordFreq > maxFrequency)
+            {
+                maxFrequency = wordFreq;
+            }
+        }
+        else
+        {
+            Data.Add(term, new TermData(0, 1));
+
+            if (s_globalFreq.ContainsKey(term))
+            {
+                s_globalFreq[term]++;
+            }
+            else
+            {
+                s_globalFreq.Add(term, 1);
+            }
+
+        }
+    }
     public double GetTF(string term)
     {
         if (Data.ContainsKey(term))
@@ -720,7 +693,7 @@ public class Document
         return (totalDistance == 0) ? 1 : MaxDistance / totalDistance;
 
     }
-    private void FillPostingList(string[] wordlist)
+    private void FillPostionsList(string[] wordlist)
     {
         for (int index = 0; index < wordlist.Length; index++)
         {
