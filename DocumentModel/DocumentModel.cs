@@ -1,6 +1,4 @@
-﻿
-namespace DocumentModel;
-
+﻿namespace DocumentModel;
 using Stemmer;
 using System.Text.Json;
 using System.Collections;
@@ -12,10 +10,10 @@ public class Document
 
     private static List<List<string>> Syns = new List<List<string>>();
 
-    string[] trimmedWords;
+    string[] fullTerms;
 
     //Get the misspell for a given term
-    public static string getMisspell(string term)
+    public static string GetMisspell(string term)
     {
 
         //TODO:Establecer un minimo de cambios que puedo hacer en dependencia de el tamaño de la palabra, ej: leon máximo dos cambios
@@ -52,8 +50,6 @@ public class Document
         int aLen = a.Length;
         int bLen = b.Length;
 
-
-
         if (aLen == 0) return bLen;
         if (bLen == 0) return aLen;
 
@@ -72,8 +68,6 @@ public class Document
         {
             distance[0, j] = j;
         }
-
-
 
         //Computes the edit distance
         for (int i = 1; i <= aLen; i++)
@@ -132,6 +126,23 @@ public class Document
         Array.Resize(ref tokens, counter);
 
         return tokens;
+    }
+
+
+    private void SaveOriginalTerms(string text)
+    {
+        string[] terms = RemoveScape(text);
+
+        int counter = 0;
+
+        foreach (string term in terms)
+        {
+            string token = Trim(term);
+
+            if (token.Length == 0) continue;
+
+            this.fullTerms![counter++] = term;
+        }
 
     }
     private string fullText;
@@ -161,11 +172,14 @@ public class Document
 
         this.fullText = fullText;
 
-        this.trimmedWords = RemoveScape(fullText);
 
         fullText = fullText.ToLower();
 
         string[] wordList = Tokenize(fullText);
+
+        this.fullTerms = new string[wordList.Length];
+
+        SaveOriginalTerms(fullText);
 
         this.Title = title;
 
@@ -181,7 +195,7 @@ public class Document
             }
         }
 
-        FillPostionsList(wordList);
+        FillPostionsList();
 
         calcTF();
 
@@ -504,7 +518,6 @@ public class Document
 
         List<Tuple<int, int>> SortedList = new List<Tuple<int, int>>();
 
-
         int counter = 0;
 
         foreach (string term in terms)
@@ -552,13 +565,14 @@ public class Document
 
             while (true)
             {
-                System.Diagnostics.Debug.Assert(queue.Count != 0, "Hola Mundo");
                 Tuple<int, int> auxItem = queue.Peek();
+
                 if (freq[auxItem.Item2] > 1)
                 {
                     freq[auxItem.Item2]--;
                     queue.Dequeue();
                 }
+
                 else break;
             }
 
@@ -579,9 +593,9 @@ public class Document
 
 
         int addedWords = 0;
-        for (; startIdx < trimmedWords.Length && addedWords <= 20; startIdx++)
+        for (; startIdx < fullTerms.Length && addedWords <= 20; startIdx++)
         {
-            snippet += trimmedWords[startIdx] + " ";
+            snippet += fullTerms[startIdx] + " ";
             addedWords++;
 
         }
@@ -693,13 +707,13 @@ public class Document
         return (totalDistance == 0) ? 1 : MaxDistance / totalDistance;
 
     }
-    private void FillPostionsList(string[] wordlist)
+    private void FillPostionsList()
     {
-        for (int index = 0; index < wordlist.Length; index++)
+        for (int index = 0; index < this.fullTerms.Length; index++)
         {
-            string term = wordlist[index];
+            string term = this.fullTerms[index];
 
-            Data[term].AddPos(index);
+            Data[Trim(term)].AddPos(index);
 
         }
     }
