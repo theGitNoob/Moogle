@@ -257,13 +257,13 @@ public class Document
     List<Tuple<string, int>> relevantTerms, List<string[]> nearTerms)
     {
 
-        bool showSyns = nearTerms.Count == 0;
+        bool augmentQuery = nearTerms.Count == 0;
 
         //Augment relevant terms
         List<Tuple<string, int>> auxList = new List<Tuple<string, int>>();
 
 
-        if (showSyns)
+        if (augmentQuery)
         {
             foreach (Tuple<string, int> item in relevantTerms)
             {
@@ -316,7 +316,7 @@ public class Document
         }
 
         //Augment the query with the root of each term if thet exists on corpus if closeness operator is not present
-        if (showSyns)
+        if (augmentQuery)
         {
             foreach (string term in terms)
             {
@@ -340,7 +340,7 @@ public class Document
         }
 
         //Populate with synonyms if they exists on corpus if closeness operator is not present
-        if (showSyns)
+        if (augmentQuery)
         {
             foreach (string term in terms)
             {
