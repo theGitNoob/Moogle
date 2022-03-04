@@ -110,14 +110,14 @@ public static class Stemmer
     }
 
 
-    private static string LongestSuffix(string term, List<string> l)
+    private static string LongestSuffix(string term, List<string> l, int region = 0)
     {
 
         string longestSuffix = "";
 
         foreach (string suffix in l)
         {
-            if (term.EndsWith(suffix) && longestSuffix.Length < suffix.Length)
+            if (term.EndsWith(suffix) && longestSuffix.Length < suffix.Length && LiesOnInterval(region, term.Length - suffix.Length))
             {
                 longestSuffix = suffix;
             }
@@ -140,6 +140,7 @@ public static class Stemmer
             {
                 case 0:
                     if (r2 == -1) break;
+
                     string longestSuffix = LongestSuffix(term, l);
 
                     if (longestSuffix != "" && LiesOnInterval(r2, term.Length - longestSuffix.Length))
@@ -151,6 +152,7 @@ public static class Stemmer
 
                 case 1:
                     if (r2 == -1) break;
+
                     longestSuffix = LongestSuffix(term, l);
 
                     if (longestSuffix != "" && LiesOnInterval(r2, term.Length - longestSuffix.Length))
@@ -243,7 +245,6 @@ public static class Stemmer
                     if (r2 == -1) break;
                     longestSuffix = LongestSuffix(term, l);
 
-
                     if (longestSuffix != "" && LiesOnInterval(r2, term.Length - longestSuffix.Length))
                     {
                         if (LiesOnInterval(r2, term.Length - (longestSuffix.Length + 4)) && (term.EndsWith("ante" + longestSuffix) || term.EndsWith("able" + longestSuffix) || term.EndsWith("ible" + longestSuffix)))
@@ -311,10 +312,15 @@ public static class Stemmer
 
         int rv = GetRV(term);
 
-        if (LiesOnInterval(rv, term.Length - longestSuffix.Length) && term.EndsWith("u" + longestSuffix))
+        if (rv == -1) return false;
+
+        if (longestSuffix != "")
         {
-            term = term.Remove(term.Length - longestSuffix.Length);
-            return true;
+            if (LiesOnInterval(rv, term.Length - longestSuffix.Length) && term.EndsWith("u" + longestSuffix))
+            {
+                term = term.Remove(term.Length - longestSuffix.Length);
+                return true;
+            }
         }
 
         return false;
@@ -324,23 +330,29 @@ public static class Stemmer
     {
         int rv = GetRV(term);
 
-        string longestSuffix = LongestSuffix(term, SnowBallData.Step2_b1);
+        if (rv == -1) return false;
 
-        if (LiesOnInterval(rv, term.Length - longestSuffix.Length))
+
+        string lS1 = LongestSuffix(term, SnowBallData.Step2_b1, rv);
+        string lS2 = LongestSuffix(term, SnowBallData.Step2_b2, rv);
+
+        if (lS1 != "" && lS2.Length < lS1.Length)
         {
-            if (term.EndsWith("gu" + longestSuffix))
-                term = term.Remove(term.Length - (longestSuffix.Length + 2));
-            else
-                term = term.Remove(term.Length - longestSuffix.Length);
+            if (LiesOnInterval(rv, term.Length - lS1.Length))
+            {
+                if (term.EndsWith("gu" + lS1))
+                    term = term.Remove(term.Length - (lS1.Length + 1));
+                else
+                    term = term.Remove(term.Length - lS1.Length);
 
-            return true;
+                return true;
+            }
         }
 
-        longestSuffix = LongestSuffix(term, SnowBallData.Step2_b2);
 
-        if (LiesOnInterval(rv, term.Length - longestSuffix.Length))
+        if (lS2 != "" && LiesOnInterval(rv, term.Length - lS2.Length))
         {
-            term = term.Remove(term.Length - longestSuffix.Length);
+            term = term.Remove(term.Length - lS2.Length);
             return true;
 
         }
@@ -352,31 +364,42 @@ public static class Stemmer
     public static void Step3(ref string term)
     {
         int rv = GetRV(term);
+
+        if (rv == -1)
+        {
+            term = Normalize(term);
+            return;
+        };
+
         string longestSuffix = LongestSuffix(term, SnowBallData.Step3_a);
 
-        if (LiesOnInterval(rv, term.Length - longestSuffix.Length))
+        if (longestSuffix != "" && LiesOnInterval(rv, term.Length - longestSuffix.Length))
         {
-            term = term.Remove(term.Length - longestSuffix.Length);
+            term = Normalize(term.Remove(term.Length - longestSuffix.Length));
             return;
         }
+
 
         longestSuffix = LongestSuffix(term, SnowBallData.Step3_b);
 
-        if (LiesOnInterval(rv, term.Length - longestSuffix.Length))
+        if (longestSuffix != "" && LiesOnInterval(rv, term.Length - longestSuffix.Length))
         {
             if (term.EndsWith("gu" + longestSuffix) && LiesOnInterval(rv, term.Length - (longestSuffix.Length + 1)))
-                term = term.Remove(term.Length - (longestSuffix.Length + 1));
+                term = Normalize(term.Remove(term.Length - (longestSuffix.Length + 1)));
             else
-                term = term.Remove(term.Length - longestSuffix.Length);
+                term = Normalize(term.Remove(term.Length - longestSuffix.Length));
 
             return;
 
         }
+
+        term = Normalize(term);
 
     }
     public static string Stemm(string term)
     {
         string originalTerm = term;
+
 
         if (Stems.ContainsKey(term))
         {
@@ -389,13 +412,16 @@ public static class Stemmer
 
         if (!flag)
         {
+
             flag = Step2a(ref term);
+
             if (!flag)
             {
+
                 flag = Step2b(ref term);
             }
-
         }
+
 
         Step3(ref term);
 

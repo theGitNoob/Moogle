@@ -34,5 +34,3 @@ app.MapFallbackToPage("/_Host");
 
 System.Console.WriteLine(stopWatch.Elapsed);
 app.Run();
-
-//TODO:Testear mi stemmer con el stemmer de Snowball
