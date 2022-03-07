@@ -13,6 +13,8 @@ public static class Moogle
 
         Document.BuildDic("../sinonimos.json");
 
+        Document.InitDistance();
+
         var files = Directory.EnumerateFiles("../Content", "*.txt");
 
         files = files.OrderBy(file => file);

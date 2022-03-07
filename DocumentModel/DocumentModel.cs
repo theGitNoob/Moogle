@@ -1,7 +1,6 @@
 ﻿namespace DocumentModel;
 using Stemmer;
 using System.Text.Json;
-using System.Collections;
 
 public class Document
 {
@@ -10,32 +9,141 @@ public class Document
 
     private static List<List<string>> Syns = new List<List<string>>();
 
+
+    //Holds the distance between keyboard letters
+    private static int[,]? KeyDistance;
+
+
+    public static int GetId(char letter)
+    {
+        if (Char.IsAscii(letter))
+            return letter - 'a';
+
+        switch (letter)
+        {
+            case 'á':
+                return 26;
+            case 'é':
+                return 27;
+            case 'í':
+                return 28;
+            case 'ó':
+                return 29;
+            case 'ú':
+                return 30;
+        }
+        return -1;
+    }
+
+    public static bool IsAlpha(string term)
+    {
+        foreach (char letter in term)
+        {
+            if (!char.IsLetter(letter)) return false;
+        }
+        return true;
+    }
+    public static int GetCost(char letter1, char letter2)
+    {
+        int id1 = GetId(letter1);
+        int id2 = GetId(letter2);
+        if (id1 == -1 || id2 == -1) return 2;
+
+        return KeyDistance![GetId(letter1), GetId(letter2)];
+
+    }
+    public static void InitDistance()
+    {
+        Dictionary<char, char[]> neighbors_of = new Dictionary<char, char[]>();
+
+        neighbors_of['q'] = new char[] { 'w', 'a' };
+        neighbors_of['w'] = new char[] { 'e', 's', 'a', 'q' };
+        neighbors_of['e'] = new char[] { 'r', 'd', 's', 'w', 'é' };
+        neighbors_of['r'] = new char[] { 't', 'f', 'd', 'e' };
+        neighbors_of['t'] = new char[] { 'y', 'g', 'f', 'r' };
+        neighbors_of['y'] = new char[] { 'u', 'h', 'g', 't' };
+        neighbors_of['u'] = new char[] { 'i', 'j', 'h', 'y', 'ú' };
+        neighbors_of['i'] = new char[] { 'o', 'k', 'j', 'u', 'í' };
+        neighbors_of['o'] = new char[] { 'p', 'l', 'k', 'i', 'ó' };
+        neighbors_of['p'] = new char[] { 'l', 'o' };
+
+        neighbors_of['a'] = new char[] { 'q', 'w', 's', 'z', 'á' };
+        neighbors_of['s'] = new char[] { 'w', 'e', 'd', 'x', 'z', 'a' };
+        neighbors_of['d'] = new char[] { 'e', 'r', 'f', 'c', 'x', 's' };
+        neighbors_of['f'] = new char[] { 'r', 't', 'g', 'v', 'c', 'd' };
+        neighbors_of['g'] = new char[] { 't', 'y', 'h', 'b', 'v', 'f' };
+        neighbors_of['h'] = new char[] { 'y', 'u', 'j', 'n', 'b', 'g' };
+        neighbors_of['j'] = new char[] { 'u', 'i', 'k', 'm', 'n', 'h' };
+        neighbors_of['k'] = new char[] { 'i', 'o', 'l', 'm', 'j' };
+        neighbors_of['l'] = new char[] { 'o', 'p', 'k' };
+
+        neighbors_of['z'] = new char[] { 'a', 's', 'x' };
+        neighbors_of['x'] = new char[] { 's', 'd', 'c', 'z' };
+        neighbors_of['c'] = new char[] { 'd', 'f', 'v', 'x' };
+        neighbors_of['v'] = new char[] { 'f', 'g', 'b', 'c' };
+        neighbors_of['b'] = new char[] { 'g', 'h', 'n', 'v' };
+        neighbors_of['n'] = new char[] { 'h', 'j', 'm', 'b' };
+        neighbors_of['m'] = new char[] { 'j', 'k', 'n' };
+
+        neighbors_of['á'] = new char[] { 'a' };
+        neighbors_of['é'] = new char[] { 'e' };
+        neighbors_of['í'] = new char[] { 'i' };
+        neighbors_of['ó'] = new char[] { 'o' };
+        neighbors_of['ú'] = new char[] { 'u' };
+
+
+        int count = neighbors_of.Keys.Count;
+
+        KeyDistance = new int[count, count];
+
+        for (int i = 0; i < count; i++)
+        {
+            for (int j = 0; j < count; j++)
+            {
+                if (i != j) KeyDistance[i, j] = 2;
+            }
+        }
+
+        foreach (char key in neighbors_of.Keys)
+        {
+            foreach (char neighbor in neighbors_of[key])
+            {
+                KeyDistance[GetId(key), GetId(neighbor)] = 1;
+            }
+        }
+
+    }
+
     string[] fullTerms;
 
     //Get the misspell for a given term
     public static string GetMisspell(string term)
     {
+        if (term.Length <= 2) return "";
+        if (!IsAlpha(term)) return "";
 
         //TODO:Establecer un minimo de cambios que puedo hacer en dependencia de el tamaño de la palabra, ej: leon máximo dos cambios
         //med stands for minimum edit distance
-        double med = 0;
+        int med = int.MaxValue;
         string word = "";
-
 
         foreach (string key in s_globalFreq.Keys)
         {
+            if (key == term || !IsAlpha(key)) continue;
+
             int ed = EditDistance(term, key);
 
-            if (ed == 0) continue;
-
-            double f = 1 / (double)((ed));
-
-            double score = f * CalcIDF(key);
-
-            if (score > med)
+            if (ed < med)
             {
-                med = score;
+                med = ed;
                 word = key;
+            }
+            if (ed == med)
+            {
+                if (CalcIDF(word) < CalcIDF(key))
+                {
+                    word = key;
+                }
             }
         }
         return word;
@@ -61,12 +169,12 @@ public class Document
 
         for (int i = 1; i <= aLen; i++)
         {
-            distance[i, 0] = i;
+            distance[i, 0] = i * 2;
         }
 
         for (int j = 0; j <= bLen; j++)
         {
-            distance[0, j] = j;
+            distance[0, j] = j * 2;
         }
 
         //Computes the edit distance
@@ -74,9 +182,9 @@ public class Document
         {
             for (int j = 1; j <= bLen; j++)
             {
-                int x = distance[i - 1, j - 1] + ((a[i - 1] == b[j - 1]) ? 0 : 1);
-                int y = distance[i - 1, j] + 1;
-                int z = distance[i, j - 1] + 1;
+                int x = distance[i - 1, j - 1] + GetCost(a[i - 1], b[j - 1]);
+                int y = distance[i - 1, j] + 2;
+                int z = distance[i, j - 1] + 2;
                 distance[i, j] = Math.Min(x, Math.Min(y, z));
 
             }
@@ -88,7 +196,7 @@ public class Document
 
     public static string[] RemoveScape(string text)
     {
-        return text.Split(new char[] { ' ', '\n', '\t' });
+        return text.Split(new char[] { ' ', '\n', '\t' }).Where((elem) => !String.IsNullOrWhiteSpace(elem)).ToArray();
     }
 
     public static string Trim(string term)
@@ -118,7 +226,7 @@ public class Document
 
         foreach (string term in terms)
         {
-            string token = Trim(term);
+            string token = Trim(term).ToLower();
             if (token.Length == 0) continue;
             tokens[counter++] = token;
         }
@@ -173,13 +281,15 @@ public class Document
         this.fullText = fullText;
 
 
-        fullText = fullText.ToLower();
 
         string[] wordList = Tokenize(fullText);
+
 
         this.fullTerms = new string[wordList.Length];
 
         SaveOriginalTerms(fullText);
+
+        fullText = fullText.ToLower();
 
         this.Title = title;
 
@@ -711,9 +821,12 @@ public class Document
     {
         for (int index = 0; index < this.fullTerms.Length; index++)
         {
-            string term = this.fullTerms[index];
+            string term = this.fullTerms[index].ToLower();
 
-            Data[Trim(term)].AddPos(index);
+            string trimmed = Trim(term);
+
+            Data[Stemmer.Stemm(trimmed)].AddPos(index);
+            Data[trimmed].AddPos(index);
 
         }
     }
