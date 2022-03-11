@@ -1,8 +1,7 @@
 namespace DocumentModel;
 public class TermData
 {
-    public double tf;
-    public double TF { get { return tf; } set { tf = value; } }
+    public double TF { get; set; }
     public double Weigth { get; set; }
 
     public int frequency;
