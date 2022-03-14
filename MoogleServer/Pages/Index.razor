@@ -3,27 +3,34 @@
 <PageTitle>Moogle!</PageTitle>
 
 <h1>🔍 Moogle!</h1>
+<section class="layout" >
+    <main>
+        <section class="search-zone">
+            <input id="search-bar"class="p-1 my-4" @bind="query" placeholder="Introduzca su búsqueda">
 
-<input class="p-1 my-4" @bind="query" placeholder="Introduzca su búsqueda">
+            <button id="search-button" type="default" class="btn btn-primary" @onclick="RunQuery">🔍 Buscar</button>
+        </section>
 
-<button id="search-button" type="default" class="btn btn-primary" @onclick="RunQuery">🔍 Buscar</button>
 
-@if (!string.IsNullOrEmpty(result.Suggestion)) {
-    <div class="suggestion">
-        <p>¿Quisiste decir <strong><a href="#">@result.Suggestion</a></strong>?</p>
-    </div>
-}
+        @if (!string.IsNullOrEmpty(result.Suggestion)) {
+            <div class="suggestion">
+                <p>¿Quisiste decir <strong><a href="#">@result.Suggestion</a></strong>?</p>
+            </div>
+        }
 
-<ul class="results">
-@foreach (var item in result.Items()) {
-    <li>
-        <div class="item">
-            <p class="title">@item.Title</p>
-            <p>... @item.Snippet ...</p>
-        </div>
-    </li>
-}
-</ul>
+        <ul class="results">
+        @foreach (var item in result.Items()) {
+            <li>
+                <div class="item">
+                    <p class="title">@item.Title</p>
+                    <p>... @item.Snippet ...</p>
+                </div>
+            </li>
+        }
+        </ul>
+    </main>
+</section>
+
 
 
 @code {
