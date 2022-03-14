@@ -74,6 +74,9 @@ namespace DocumentModel
                 syns.AddRange(Syns[pos]);
             }
 
+            syns = syns.Distinct().ToList();
+            syns.Remove(term);
+
             return syns.ToArray();
         }
     }
