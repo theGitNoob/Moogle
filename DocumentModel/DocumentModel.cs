@@ -1,12 +1,19 @@
 ﻿namespace DocumentModel;
+using Stemmer;
 public class Document
 {
 
     //
     // Summary:
+    //      The sum of the components
+    //
+    protected double Sum { get; set; }
+
+    //
+    // Summary:
     //      The norm of the vectorized document
     //
-    public double Norm { get; private set; }
+    public double Norm { get { return Math.Sqrt(Sum); } }
 
     //
     // Summary:
@@ -55,7 +62,7 @@ public class Document
     //     The full text of the document 
     //   collection:
     //      The collection of all the documents
-    public Document(string title, string fullText, DocumentCollection collection)
+    public Document(string title, string fullText)
     {
 
         this.Data = new Dictionary<string, TermData>();
@@ -71,7 +78,7 @@ public class Document
         fullText = fullText.ToLower();
 
 
-        Index(wordList, collection);
+        Index(wordList);
 
         FillPostionsList();
 
@@ -81,17 +88,17 @@ public class Document
     /// <summary>
     ///     Adds each term of the document
     /// </summary>
-    private void Index(string[] wordList, DocumentCollection collection)
+    private void Index(string[] wordList)
     {
         foreach (string term in wordList)
         {
-            string root = Stemmer.Stemmer.Stemm(term);
+            string root = Stemmer.Stemm(term);
 
-            AddTerm(term, collection);
+            AddTerm(term);
 
             if (root != term)
             {
-                AddTerm(root, collection);
+                AddTerm(root);
             }
         }
     }
@@ -121,7 +128,7 @@ public class Document
     // Summary:
     //      Adds the term to the document and to the DocumentCollectin, also update the max frequency
     //
-    private void AddTerm(string term, DocumentCollection Collection)
+    private void AddTerm(string term)
     {
         if (Data.ContainsKey(term))
         {
@@ -138,7 +145,8 @@ public class Document
         {
             Data.Add(term, new TermData(0, 1));
 
-            Collection.AddTerm(term);
+            DocumentCollection.AddTerm(term);
+
         }
     }
 
@@ -146,9 +154,9 @@ public class Document
     // Summary:
     //      Retrieves the stored TF
     //
-    private double GetTF(string term)
+    protected double GetTF(string term)
     {
-        if (ContainsTerm(term))
+        if (this.ContainsTerm(term))
             return Data[term].TF;
 
         return 0;
@@ -158,7 +166,7 @@ public class Document
     // Summary:
     //      Calcs the Term Frequency
     //
-    private void CalcTF()
+    protected void CalcTF()
     {
         foreach (string key in Data.Keys)
         {
@@ -172,8 +180,8 @@ public class Document
     //
     public void AddWeigth(string term, double weigth)
     {
-        Norm += weigth * weigth;
-        Data[term].Weigth = weigth;
+        this.Sum += weigth * weigth;
+        this.Data[term].Weigth = weigth;
     }
 
     //
@@ -234,7 +242,7 @@ public class Document
     //      A string with at most 20 term containing the maximun amount of terms without the lose
     //      of document consistence
     //
-    private string GetSnippet(string[] terms)
+    public string GetSnippet(string[] terms)
     {
         //Remove duplicate elements??
         terms = terms.Distinct().ToArray();
@@ -272,6 +280,7 @@ public class Document
 
 
         int startIdx = 0;
+
         int bestCnt = 0;
 
         int onQueue = 0;
@@ -279,6 +288,7 @@ public class Document
         foreach (Tuple<int, int> item in SortedList)
         {
             int idx = item.Item1;
+
             int id = item.Item2;
 
             if (freq[id] == 0) onQueue++;
@@ -338,7 +348,16 @@ public class Document
     }
 
 
-    public static int FindClosestScore(List<string[]> nearTerms, Document doc)
+    //
+    // Summary: 
+    //      Given a list of term that should appear together it
+    //      performs a search on the document an find te minimun window that contains
+    //      all the terms
+    // Returns:
+    //      The size of the minimun window that contains all of the terms
+    //
+
+    public static int FindClosestTerms(List<string[]> nearTerms, Document doc)
     {
         int MaxDistance = 0;
         int totalDistance = 0;
@@ -434,7 +453,7 @@ public class Document
 
             string trimmed = TermUtils.Trim(term);
 
-            Data[Stemmer.Stemmer.Stemm(trimmed)].AddPos(index);
+            Data[Stemmer.Stemm(trimmed)].AddPos(index);
             Data[trimmed].AddPos(index);
 
         }
