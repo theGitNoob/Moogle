@@ -2,7 +2,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DocumentModel\DocumentModel.csproj" />
-    <ProjectReference Include="..\Stemmer\Stemmer.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
