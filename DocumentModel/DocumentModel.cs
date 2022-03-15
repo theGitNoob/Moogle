@@ -77,7 +77,6 @@ public class Document
 
         fullText = fullText.ToLower();
 
-
         Index(wordList);
 
         FillPostionsList();
@@ -202,7 +201,7 @@ public class Document
     // Returns:
     //      A sorted list `List<Tuple<int, int>>` 
     //
-    private static List<Tuple<int, int>> MergeList(List<Tuple<int, int>> l1, List<Tuple<int, int>> l2)
+    private static List<Tuple<int, int>> MergeLists(List<Tuple<int, int>> l1, List<Tuple<int, int>> l2)
     {
         List<Tuple<int, int>> sortedList = new List<Tuple<int, int>>();
 
@@ -234,22 +233,15 @@ public class Document
 
     }
 
-
     //
     // Summary:
-    //     Retrives a snippet of the document given certains terms
+    //     Sorts the all the position lists containing the positions on the terms to be retrieved
+    //      on the snipper
     // Returns:
-    //      A string with at most 20 term containing the maximun amount of terms without the lose
-    //      of document consistence
+    //      An integer representing the amount of different
     //
-    public string GetSnippet(string[] terms)
+    private void SortPositions(string[] terms, ref List<Tuple<int, int>> SortedList)
     {
-        //Remove duplicate elements??
-        terms = terms.Distinct().ToArray();
-
-
-        List<Tuple<int, int>> SortedList = new List<Tuple<int, int>>();
-
         int counter = 0;
 
         foreach (string term in terms)
@@ -265,16 +257,32 @@ public class Document
                     auxList.Add(new Tuple<int, int>(index, counter));
                 }
 
-                SortedList = MergeList(SortedList, auxList);
+                SortedList = MergeLists(SortedList, auxList);
 
             }
-
             counter++;
         }
+    }
 
+    //
+    // Summary:
+    //     Retrives a snippet of the document given certains terms
+    // Returns:
+    //      A string with at most 20 term containing the maximun amount of terms without the lose
+    //      of document consistence
+    //
+    public string GetSnippet(string[] terms)
+    {
+        //Remove duplicate elements
+        terms = terms.Distinct().ToArray();
 
-        int[] freq = new int[counter];
+        List<Tuple<int, int>> SortedList = new List<Tuple<int, int>>();
 
+        SortPositions(terms, ref SortedList);
+
+        //Stores the amount of elements with the same id on the queue
+
+        int[] freq = new int[terms.Length];
 
         Queue<Tuple<int, int>> queue = new Queue<Tuple<int, int>>();
 
@@ -285,6 +293,7 @@ public class Document
 
         int onQueue = 0;
 
+        //Adds elements to the queue and only extracts them while teir frequency is bigger than `one`
         foreach (Tuple<int, int> item in SortedList)
         {
             int idx = item.Item1;
@@ -323,6 +332,7 @@ public class Document
 
         int addedWords = 0;
 
+        // If possible adds the previos 5 characters to get some context
         if (startIdx - 5 >= 0) startIdx -= 5;
 
         for (; startIdx < fullTerms.Length && addedWords <= 20; startIdx++)
@@ -357,9 +367,10 @@ public class Document
     //      The size of the minimun window that contains all of the terms
     //
 
-    public static int FindClosestTerms(List<string[]> nearTerms, Document doc)
+    public int FindClosestTerms(List<string[]> nearTerms)
     {
         int MaxDistance = 0;
+
         int totalDistance = 0;
 
         foreach (var items in nearTerms)
@@ -374,10 +385,9 @@ public class Document
 
             foreach (var item in dic)
             {
-
                 string term = item.Key;
 
-                if (!doc.Data.ContainsKey(term))
+                if (!this.Data.ContainsKey(term))
                 {
                     calcDistance = false;
                     break;
@@ -385,7 +395,7 @@ public class Document
 
                 MaxDistance += 20;
 
-                List<int> termPositions = doc.Data[term].Positions;
+                List<int> termPositions = this.Data[term].Positions;
 
                 List<Tuple<int, int>> newPositions = new List<Tuple<int, int>>();
 
@@ -394,7 +404,7 @@ public class Document
                     newPositions.Add(Tuple.Create(pos, item.Value));
                 }
 
-                positions = MergeList(positions, newPositions);
+                positions = MergeLists(positions, newPositions);
             }
             if (!calcDistance) continue;
 
