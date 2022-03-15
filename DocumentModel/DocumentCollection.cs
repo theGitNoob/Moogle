@@ -5,19 +5,19 @@ namespace DocumentModel
     //     Class containing the collection of all indexed documents
     //     and all the methos related to the terms on the collection
     //
-    public class DocumentCollection
+    static public class DocumentCollection
     {
         //
         // Summary:
         //     A list with all the index documents
         //
-        public List<Document> Docs { get; private set; }
+        static public List<Document> Docs { get; private set; } = new List<Document>();
 
         //
         // Summary:
         //    A Dictionary with the frequency of each term on the document collection
         //
-        private Dictionary<String, int> GlobalFreq;
+        static private Dictionary<String, int> GlobalFreq = new Dictionary<string, int>();
 
         //
         // Summary:
@@ -29,17 +29,16 @@ namespace DocumentModel
         // Summary:
         //     Create a new instance of the DocumentCollection class
         //
-        public DocumentCollection()
-        {
-            Docs = new List<Document>();
-            GlobalFreq = new Dictionary<string, int>();
-
-        }
+        // public DocumentCollection()
+        // {
+        //     Docs = new List<Document>();
+        //     GlobalFreq = new Dictionary<string, int>();
+        // }
         //
         // Summary:
         //     Adds a document to the collection and increase the size of the collection by one
         //
-        public void Add(Document doc)
+        static public void Add(Document doc)
         {
             Docs.Add(doc);
             s_Size++;
@@ -51,7 +50,7 @@ namespace DocumentModel
         //     Checks for the existence of a term on the collection
         //  Returns:
         //     true if term exits, false otherwise
-        public bool Contains(string term)
+        static public bool Contains(string term)
         {
             return GlobalFreq.ContainsKey(term);
 
@@ -63,7 +62,7 @@ namespace DocumentModel
         //  Returns:
         //     0 if term not exists, the global frequency otherwise
 
-        public int GetGlobalFrequency(string term)
+        static public int GetGlobalFrequency(string term)
         {
             if (Contains(term))
                 return GlobalFreq[term];
@@ -74,7 +73,7 @@ namespace DocumentModel
         // Summary:
         //     Augment the frequency of the term on the collection
         //
-        public void AddTerm(string term)
+        static public void AddTerm(string term)
         {
             if (Contains(term))
             {
@@ -93,11 +92,11 @@ namespace DocumentModel
         // Returns:
         //      A double representing the idf of the term
         //
-        public double CalcIDF(string term)
+        static public double CalcIDF(string term)
         {
             int cnt = 0;
 
-            if (this.Contains(term))
+            if (Contains(term))
             {
                 cnt = GlobalFreq[term];
 
@@ -112,7 +111,7 @@ namespace DocumentModel
         // Summary:
         //     Fills the weight of each term on each document using tf-idf
         //
-        public void FillWeigths()
+        static public void FillWeigths()
         {
             foreach (string term in GlobalFreq.Keys)
             {
@@ -137,7 +136,7 @@ namespace DocumentModel
         // Returns:
         //      A string that is the most probabbly correct term
         //
-        public string GetMisspell(string term)
+        static public string GetMisspell(string term)
         {
 
             if (term.Length <= 2) return "";
