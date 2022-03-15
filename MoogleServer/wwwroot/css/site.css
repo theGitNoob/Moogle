@@ -19,6 +19,14 @@ a,
   color: #0071c1;
 }
 
+.suggestion {
+  padding-top: 2rem;
+}
+
+.suggestion a {
+  text-decoration: none;
+}
+
 .btn-primary {
   color: #fff;
   background-color: #1b6ec2;

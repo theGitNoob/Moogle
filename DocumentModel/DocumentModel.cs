@@ -337,7 +337,18 @@ public class Document
 
         for (; startIdx < fullTerms.Length && addedWords <= 20; startIdx++)
         {
-            snippet += fullTerms[startIdx] + " ";
+            string word = fullTerms[startIdx];
+
+            string trimmed = TermUtils.Trim(word).ToLower();
+
+            if (terms.Contains(trimmed))
+            {
+                snippet += word + "$$ ";
+            }
+            else
+            {
+                snippet += word + " ";
+            }
             addedWords++;
 
         }

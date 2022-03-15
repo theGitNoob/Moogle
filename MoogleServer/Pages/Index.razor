@@ -6,7 +6,7 @@
 <section class="layout" >
     <main>
         <section class="search-zone">
-            <input id="search-bar"class="p-1 my-4" @bind="query" placeholder="Introduzca su búsqueda">
+            <input id="search-bar"class="p-1 my-4" @bind-value="query" placeholder="Introduzca su búsqueda">
 
             <button id="search-button" type="default" class="btn btn-primary" @onclick="RunQuery">🔍 Buscar</button>
         </section>
@@ -14,7 +14,7 @@
 
         @if (!string.IsNullOrEmpty(result.Suggestion)) {
             <div class="suggestion">
-                <p>¿Quisiste decir <strong><a href="#">@result.Suggestion</a></strong>?</p>
+                <p><b>¿Quisiste decir</b> <strong><a id="link-suggestion" href="#" @onclick="QuerySuggestion">@result.Suggestion</a></strong>?</p>
             </div>
         }
 
@@ -23,7 +23,23 @@
             <li>
                 <div class="item">
                     <p class="title">@item.Title</p>
-                    <p>... @item.Snippet ...</p>
+                    @* <p>... @item.Snippet ...</p> *@
+                    <p>
+                    @foreach (string word in item.Snippet.Split(" "))
+                    {
+                        string cad = "";
+                        if(word.EndsWith("$$"))
+                        {
+                             cad = word.Remove(word.Length-2) + " ";
+                            <strong><i>@cad</i></strong>
+                        }
+                        else
+                        {
+                            cad = word + " ";
+                            @cad
+                        }
+                    }
+                    </p>
                 </div>
             </li>
         }
@@ -37,7 +53,13 @@
     private string query = "";
     private SearchResult result = new SearchResult();
 
+
     private void RunQuery() {
         result = Moogle.Query(query);
+    }
+    private void QuerySuggestion()
+    {
+        query =  result.Suggestion;
+        RunQuery();
     }
 }
