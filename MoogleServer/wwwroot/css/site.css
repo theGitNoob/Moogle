@@ -9,16 +9,14 @@ h1:focus {
   outline: none;
 }
 
-.layout main {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
 a,
 .btn-link {
   color: #0071c1;
 }
 
+ul.results {
+  padding-top: 1rem;
+}
 .suggestion {
   padding-top: 2rem;
 }
@@ -53,18 +51,35 @@ a,
 }
 
 #search-bar {
-  width: 300px;
-  border-radius: 1rem;
-  border-width: 3px;
-  border-style: solid;
   text-align: center;
+
+  display: block;
+
+  margin-left: auto;
+  margin-right: auto;
+
+  width: 550px;
+
+  border-radius: 50px;
+  height: 40px;
+
+  border: 1px solid #b9b9b9;
+
+  outline: none;
+
+  padding-left: 40px;
 }
+
 .validation-message {
   color: red;
 }
+
 #search-button {
-  margin-left: 1px;
   border-radius: 3rem;
+  border: none;
+  margin-top: 10px;
+  cursor: pointer;
+  height: 2.5rem;
 }
 
 #blazor-error-ui {
@@ -96,4 +111,12 @@ a,
 
 .blazor-error-boundary::after {
   content: "An error has occurred.";
+}
+
+input:hover {
+  box-shadow: 3px 4px 3px rgb(192, 185, 185);
+}
+
+.main {
+  text-align: center;
 }
