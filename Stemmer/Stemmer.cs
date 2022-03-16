@@ -3,8 +3,8 @@
 
     public static class Stemmer
     {
-
-        private static Dictionary<string, string> Stems = new Dictionary<string, string>();
+        //Holds the root once calculated
+        private static Dictionary<string, string> s_stems = new Dictionary<string, string>();
 
         private static bool IsVowel(char letter)
         {
@@ -402,9 +402,9 @@
             string originalTerm = term;
 
 
-            if (Stems.ContainsKey(term))
+            if (s_stems.ContainsKey(term))
             {
-                return Stems[term];
+                return s_stems[term];
             }
 
             term = Step0(term);
@@ -426,7 +426,7 @@
 
             Step3(ref term);
 
-            Stems[originalTerm] = term;
+            s_stems[originalTerm] = term;
             return term;
         }
 

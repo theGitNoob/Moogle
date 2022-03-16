@@ -17,7 +17,7 @@ namespace DocumentModel
         // Summary:
         //    A Dictionary with the frequency of each term on the document collection
         //
-        static private Dictionary<String, int> GlobalFreq = new Dictionary<string, int>();
+        static private Dictionary<String, int> s_globalFreq = new Dictionary<string, int>();
 
         //
         // Summary:
@@ -52,7 +52,7 @@ namespace DocumentModel
         //     true if term exits, false otherwise
         static public bool Contains(string term)
         {
-            return GlobalFreq.ContainsKey(term);
+            return s_globalFreq.ContainsKey(term);
 
         }
 
@@ -65,7 +65,7 @@ namespace DocumentModel
         static public int GetGlobalFrequency(string term)
         {
             if (Contains(term))
-                return GlobalFreq[term];
+                return s_globalFreq[term];
 
             return 0;
         }
@@ -77,11 +77,11 @@ namespace DocumentModel
         {
             if (Contains(term))
             {
-                GlobalFreq[term]++;
+                s_globalFreq[term]++;
             }
             else
             {
-                GlobalFreq.Add(term, 1);
+                s_globalFreq.Add(term, 1);
             }
         }
 
@@ -98,7 +98,7 @@ namespace DocumentModel
 
             if (Contains(term))
             {
-                cnt = GlobalFreq[term];
+                cnt = s_globalFreq[term];
 
                 return Math.Log2((double)s_Size / cnt);
             }
@@ -113,7 +113,7 @@ namespace DocumentModel
         //
         static public void FillWeigths()
         {
-            foreach (string term in GlobalFreq.Keys)
+            foreach (string term in s_globalFreq.Keys)
             {
                 foreach (Document doc in Docs)
                 {
@@ -143,32 +143,32 @@ namespace DocumentModel
 
             if (!TermUtils.IsAlpha(term)) return "";
 
-            int med = int.MaxValue;
+            int minEditDistance = int.MaxValue;
 
-            string word = "";
+            string suggestion = "";
 
             int maxAllowedDiff = term.Length / 3;
 
-            foreach (string key in GlobalFreq.Keys)
+            foreach (string key in s_globalFreq.Keys)
             {
                 if (key == term || Math.Abs(key.Length - term.Length) > maxAllowedDiff || !TermUtils.IsAlpha(key)) continue;
 
-                int ed = TermUtils.EditDistance(term, key);
+                int editDistance = TermUtils.EditDistance(term, key);
 
-                if (ed < med)
+                if (editDistance < minEditDistance)
                 {
-                    med = ed;
-                    word = key;
+                    minEditDistance = editDistance;
+                    suggestion = key;
                 }
-                if (ed == med)
+                if (editDistance == minEditDistance)
                 {
-                    if (GetGlobalFrequency(word) > GetGlobalFrequency(key))
+                    if (GetGlobalFrequency(suggestion) < GetGlobalFrequency(key))
                     {
-                        word = key;
+                        suggestion = key;
                     }
                 }
             }
-            return word;
+            return suggestion;
         }
     }
 }

@@ -6,24 +6,24 @@ using Stemmer;
 public class Query : Document
 {
 
-    private string[] Terms = new string[0];
+    private string[] _terms = new string[0];
 
-    private string[] ExcludedTerms = new string[0];
+    private string[] _excludedTerms = new string[0];
 
-    private string[] MandatoryTerms = new string[0];
+    private string[] _mandatoryTerms = new string[0];
 
-    private Dictionary<string, int> TermRelevance = new Dictionary<string, int>();
+    private Dictionary<string, int> _termRelevance = new Dictionary<string, int>();
 
-    List<string[]> NearTerms = new List<string[]>();
+    private List<string[]> _nearTerms = new List<string[]>();
 
     //Used to check wheter the normal form of a term is given on the query
-    private HashSet<String> NormalWords = new HashSet<string>();
+    private HashSet<String> _normalWords = new HashSet<string>();
 
     //Used to check wheter the root of a term is given on the query
-    private HashSet<String> StemmedWords = new HashSet<string>();
+    private HashSet<String> _stemmedWords = new HashSet<string>();
 
     //Used to check wheter the synonomous of a term is given on the query
-    private HashSet<String> RelatedWords = new HashSet<string>();
+    private HashSet<String> _relatedWords = new HashSet<string>();
 
 
     /// <summary>
@@ -32,7 +32,7 @@ public class Query : Document
     private void GenExcludeList(string[] unescapedWords)
     {
         //Terms to be excluded
-        ExcludedTerms = unescapedWords.Where((elem) => elem[0] == '!').
+        _excludedTerms = unescapedWords.Where((elem) => elem[0] == '!').
                         Select((term) => TermUtils.Trim(term)).Distinct().ToArray();
     }
 
@@ -43,7 +43,7 @@ public class Query : Document
     private void GenIncludeList(string[] unescapedWords)
     {
         //Terms to be included
-        MandatoryTerms = unescapedWords.Where((elem) => elem[0] == '^').
+        _mandatoryTerms = unescapedWords.Where((elem) => elem[0] == '^').
                          Select((term) => TermUtils.Trim(term)).Distinct().ToArray();
 
     }
@@ -53,7 +53,7 @@ public class Query : Document
     private void GenImportantList(string[] unescapedWords)
     {
 
-        this.TermRelevance = new Dictionary<string, int>();
+        this._termRelevance = new Dictionary<string, int>();
 
         for (int idx = 0; idx < unescapedWords.Length; idx++)
         {
@@ -73,13 +73,13 @@ public class Query : Document
                     else break;
                 }
 
-                if (TermRelevance.ContainsKey(trimmed))
+                if (_termRelevance.ContainsKey(trimmed))
                 {
-                    TermRelevance[trimmed] += counter;
+                    _termRelevance[trimmed] += counter;
                 }
                 else
                 {
-                    TermRelevance.Add(trimmed, counter);
+                    _termRelevance.Add(trimmed, counter);
                 }
 
             }
@@ -106,7 +106,7 @@ public class Query : Document
 
             query = query.Replace(cad, auxCad.ToString());
 
-            NearTerms.Add(nearby);
+            _nearTerms.Add(nearby);
         }
     }
 
@@ -119,10 +119,10 @@ public class Query : Document
         foreach (string term in wordList)
         {
             AddTerm(term);
-            NormalWords.Add(term);
+            _normalWords.Add(term);
         }
 
-        this.Terms = wordList;
+        this._terms = wordList;
     }
 
 
@@ -139,8 +139,8 @@ public class Query : Document
             {
                 AddTerm(root);
 
-                if (!NormalWords.Contains(root))
-                    StemmedWords.Add(root);
+                if (!_normalWords.Contains(root))
+                    _stemmedWords.Add(root);
             }
         }
     }
@@ -159,19 +159,19 @@ public class Query : Document
                 if (DocumentCollection.Contains(syn))
                 {
                     AddTerm(syn);
-                    if (!NormalWords.Contains(syn) && !StemmedWords.Contains(term))
-                        RelatedWords.Add(syn);
+                    if (!_normalWords.Contains(syn) && !_stemmedWords.Contains(term))
+                        _relatedWords.Add(syn);
 
                     //Augment relevance of the synonomus but less than relevance of original words
-                    if (TermRelevance.ContainsKey(term))
+                    if (_termRelevance.ContainsKey(term))
                     {
-                        if (TermRelevance.ContainsKey(syn))
+                        if (_termRelevance.ContainsKey(syn))
                         {
-                            TermRelevance[syn] += TermRelevance[term] - 1;
+                            _termRelevance[syn] += _termRelevance[term] - 1;
                         }
                         else
                         {
-                            TermRelevance.Add(syn, TermRelevance[term] - 1);
+                            _termRelevance.Add(syn, _termRelevance[term] - 1);
                         }
                     }
                 }
@@ -186,7 +186,7 @@ public class Query : Document
     /// </summary>
     private bool ExcludeDoc(Document doc)
     {
-        foreach (string term in ExcludedTerms)
+        foreach (string term in _excludedTerms)
         {
             if (doc.ContainsTerm(term))
             {
@@ -204,7 +204,7 @@ public class Query : Document
     /// </summary>
     private bool IncludeDoc(Document doc)
     {
-        foreach (string term in MandatoryTerms)
+        foreach (string term in _mandatoryTerms)
         {
             if (!doc.ContainsTerm(term))
             {
@@ -302,7 +302,7 @@ public class Query : Document
     {
         List<string> TermList = new List<string>();
 
-        foreach (string key in NormalWords)
+        foreach (string key in _normalWords)
         {
             if (doc.ContainsTerm(key))
             {
@@ -325,7 +325,7 @@ public class Query : Document
     public List<Tuple<string, string, double>> GetResults()
     {
 
-        bool augmentQuery = NearTerms.Count == 0;
+        bool augmentQuery = _nearTerms.Count == 0;
 
         List<Tuple<string, string, double>> results = new List<Tuple<string, string, double>>();
 
@@ -342,13 +342,13 @@ public class Query : Document
             foreach (string term in this.Data.Keys)
             {
 
-                double relevance = TermRelevance.ContainsKey(term) ? TermRelevance[term] + 1 : 1;
+                double relevance = _termRelevance.ContainsKey(term) ? _termRelevance[term] + 1 : 1;
 
                 double query_idf = DocumentCollection.CalcIDF(term);
 
-                bool isRoot = StemmedWords.Contains(term) == true;
+                bool isRoot = _stemmedWords.Contains(term) == true;
 
-                bool isSyn = isRoot == false && RelatedWords.Contains(term) == true;
+                bool isSyn = isRoot == false && _relatedWords.Contains(term) == true;
 
                 double query_weigth = CalcWeigth(term, query_idf) * (relevance);
 
@@ -368,7 +368,7 @@ public class Query : Document
 
             }
 
-            int multiplier = doc.FindClosestTerms(NearTerms);
+            int multiplier = doc.FindClosestTerms(_nearTerms);
 
             queryNorm = Math.Sqrt(queryNorm);
 
@@ -398,7 +398,7 @@ public class Query : Document
     {
         StringBuilder newQuery = new StringBuilder();
 
-        foreach (string term in this.Terms)
+        foreach (string term in this._terms)
         {
             string misspell = DocumentCollection.GetMisspell(term);
 

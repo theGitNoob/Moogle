@@ -3,7 +3,10 @@
 using DocumentModel;
 
 public static class Moogle
-{
+{   //
+    // Summary:
+    //     Starts the indexing of the document database
+    //
     public static void StartIndex()
     {
         string ContentPath = Environment.GetEnvironmentVariable("CONTENT_PATH") ?? Directory.GetParent(Directory.GetCurrentDirectory())!.ToString() + "/Content/";
@@ -29,7 +32,10 @@ public static class Moogle
 
     }
 
-
+    //
+    // Summary:
+    //     Reads the whole content of the file especified
+    //
     private static string ReadFile(string fileName)
     {
         StreamReader reader = new StreamReader(fileName);
@@ -39,6 +45,11 @@ public static class Moogle
         return fullText;
 
     }
+
+    //
+    // Summary:
+    //     Performs the Query 
+    //
     public static SearchResult Query(string query)
     {
 

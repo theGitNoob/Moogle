@@ -19,7 +19,7 @@ public class Document
     // Summary:
     //      All the terms of the document
     //
-    private string[] fullTerms;
+    private string[] _fullTerms;
 
     //
     // Summary:
@@ -48,7 +48,7 @@ public class Document
     {
         this.Data = new Dictionary<string, TermData>();
         this.Title = "";
-        this.fullTerms = new String[0];
+        this._fullTerms = new String[0];
     }
 
     //
@@ -69,7 +69,7 @@ public class Document
 
         string[] wordList = TermUtils.Tokenize(fullText);
 
-        this.fullTerms = new string[wordList.Length];
+        this._fullTerms = new string[wordList.Length];
 
         this.Title = title;
 
@@ -118,7 +118,7 @@ public class Document
 
             if (token.Length == 0) continue;
 
-            this.fullTerms![counter++] = term;
+            this._fullTerms![counter++] = term;
         }
 
     }
@@ -335,9 +335,9 @@ public class Document
         // If possible adds the previos 5 characters to get some context
         if (startIdx - 5 >= 0) startIdx -= 5;
 
-        for (; startIdx < fullTerms.Length && addedWords <= 20; startIdx++)
+        for (; startIdx < _fullTerms.Length && addedWords <= 20; startIdx++)
         {
-            string word = fullTerms[startIdx];
+            string word = _fullTerms[startIdx];
 
             string trimmed = TermUtils.Trim(word).ToLower();
 
@@ -468,9 +468,9 @@ public class Document
     //
     private void FillPostionsList()
     {
-        for (int index = 0; index < this.fullTerms.Length; index++)
+        for (int index = 0; index < this._fullTerms.Length; index++)
         {
-            string term = this.fullTerms[index].ToLower();
+            string term = this._fullTerms[index].ToLower();
 
             string trimmed = TermUtils.Trim(term);
 

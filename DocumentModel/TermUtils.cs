@@ -11,7 +11,7 @@ namespace DocumentModel
         //
         // Summary:
         //      Holds the distance between keyboard letters
-        private static int[,]? KeyDistance;
+        private static int[,]? s_keyDistance;
 
         //
         // Summary:
@@ -92,7 +92,7 @@ namespace DocumentModel
             int id2 = GetId(letter2);
             if (id1 == -1 || id2 == -1) return 2;
 
-            return KeyDistance![GetId(letter1), GetId(letter2)];
+            return s_keyDistance![GetId(letter1), GetId(letter2)];
 
         }
         //
@@ -141,13 +141,13 @@ namespace DocumentModel
 
             int count = neighbors_of.Keys.Count;
 
-            KeyDistance = new int[count, count];
+            s_keyDistance = new int[count, count];
 
             for (int i = 0; i < count; i++)
             {
                 for (int j = 0; j < count; j++)
                 {
-                    if (i != j) KeyDistance[i, j] = 2;
+                    if (i != j) s_keyDistance[i, j] = 2;
                 }
             }
 
@@ -155,7 +155,7 @@ namespace DocumentModel
             {
                 foreach (char neighbor in neighbors_of[key])
                 {
-                    KeyDistance[GetId(key), GetId(neighbor)] = 1;
+                    s_keyDistance[GetId(key), GetId(neighbor)] = 1;
                 }
             }
 

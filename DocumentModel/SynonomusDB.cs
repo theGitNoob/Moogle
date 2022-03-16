@@ -10,9 +10,9 @@ namespace DocumentModel
     public static class SynonomusDB
     {
 
-        private static Dictionary<string, List<int>> SynonomusPositions = new Dictionary<string, List<int>>();
+        private static Dictionary<string, List<int>> s_synonomusPositions = new Dictionary<string, List<int>>();
 
-        private static List<List<string>> Syns = new List<List<string>>();
+        private static List<List<string>> s_syns = new List<List<string>>();
 
         //
         // Summary: 
@@ -38,17 +38,17 @@ namespace DocumentModel
 
                     l.Add(auxTerm);
 
-                    if (SynonomusPositions.ContainsKey(auxTerm))
+                    if (s_synonomusPositions.ContainsKey(auxTerm))
                     {
-                        SynonomusPositions[auxTerm].Add(index);
+                        s_synonomusPositions[auxTerm].Add(index);
                     }
                     else
                     {
-                        SynonomusPositions.Add(auxTerm, new List<int> { index });
+                        s_synonomusPositions.Add(auxTerm, new List<int> { index });
                     }
                 }
 
-                Syns.Add(l);
+                s_syns.Add(l);
 
                 index++;
             }
@@ -63,15 +63,15 @@ namespace DocumentModel
         //
         public static string[] GetSynonomus(string term)
         {
-            if (!SynonomusPositions.ContainsKey(term)) return new string[0];
+            if (!s_synonomusPositions.ContainsKey(term)) return new string[0];
 
-            List<int> positions = SynonomusPositions[term];
+            List<int> positions = s_synonomusPositions[term];
 
             List<string> syns = new List<string>();
 
             foreach (int pos in positions)
             {
-                syns.AddRange(Syns[pos]);
+                syns.AddRange(s_syns[pos]);
             }
 
             syns = syns.Distinct().ToList();

@@ -2,7 +2,7 @@ namespace MoogleEngine;
 
 public class SearchResult
 {
-    private SearchItem[] items;
+    private SearchItem[] _items;
 
     public SearchResult(SearchItem[] items, string suggestion = "")
     {
@@ -12,7 +12,7 @@ public class SearchResult
         }
         Array.Sort(items);
 
-        this.items = items;
+        this._items = items;
         this.Suggestion = suggestion;
     }
 
@@ -25,8 +25,8 @@ public class SearchResult
 
     public IEnumerable<SearchItem> Items()
     {
-        return this.items;
+        return this._items;
     }
 
-    public int Count { get { return this.items.Length; } }
+    public int Count { get { return this._items.Length; } }
 }
