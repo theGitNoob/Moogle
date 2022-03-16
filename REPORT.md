@@ -1,52 +1,92 @@
-# Moogle
+# Descripción
 
-![project logo](moogle.png)
+La idea principal detrás de este proyecto es hacer un motor de búsquedas en un conjunto de documentos,
+similares a lo que hacen motores como `Google` de los cuales no se tomó ninguna inspiración🙂.
 
-> Proyecto de Programación I. Facultad de Matemática y Computación. Universidad de La Habana. Curso 2021.
+## Algoritmo de búsqueda
 
-Moogle! es una aplicación _totalmente original_ cuyo propósito es buscar inteligentemente un texto en un conjunto de documentos.
+Como base para el motor de búsqueda se usa el `model de espacio vectorial`, este es un modelo algebraico utilizado para filtrado, recuperación, indexado y cálculo de relevancia de información. Representa documentos en lenguaje natural de una manera formal mediante el uso de vectores (de identificadores, por ejemplo términos de búsqueda) en un espacio lineal multidimensional(Wikipedia).
 
-Es una aplicación web, desarrollada con tecnología .NET Core 6.0, específicamente usando Blazor como _framework_ web para la interfaz gráfica, y en el lenguaje C#.
-La aplicación está dividida en dos componentes fundamentales:
+## Operadores
+
+Para hacer el motor un poco más funcional se implementaron algunos operadores que permiten, filtrar aún más la información buscada, tales son:
+
+- Exclusión: Este operador indica que cualquier documento que lo contenga delante (ej: `!cuba`) no debe aparecer en los resultados de la búsqueda.
+
+- Inclusión: Análogo al operador anterior, el operador de inclusión indica que todo documento que lo contenga (ej: `^hermosa`) debe aparecer en los documentos encontrados.
+
+- Relevancia: El operador de relevancia cuando se encuentra presente, hace que la palabra deseada tenga más relevancia sobre el resto, notar que esta es acumulativa y se puede aplicar en varios términos de la búsqueda
+  (ej: `**blockchain y *bitcoin`).
+
+- Cercanía: Por último tenemos el operador de cercanía, este indica que lo términos buscados deben aparecer cercanos en el documento, esto es mientras más cerca aparezcan en un documento, más relevante será este de cara al resultado esperado, este operador acepta dos o más términos (ej: `blockhain~dinero~estafa`).
+
+## Sugerencia
+
+Como se supone que este motor será usado por personas y a pesar de que suene díficil de creer estas se equivocan, se ha implementado un algoritmo de sugerencia que, adivinen que, `sugiere` una búsqueda más exacta en dependencia de sí la búsqueda se escribión con error, es decir para la palabra `cuva` el algoritmo sugiere `cuba`
+
+## Snipets
+
+Para entrar en contexto, los resultados de búsqueda cuentan con snippets que son pequeños fragmentos de los documentos encontrados conteniendo una o varia de las palabras buscadas en caso de estar estas cercanas
+
+## Raíces y Sinónimos
+
+Como el lenguajes es tan rico y variado se incluyen en las búsquedas documentos en los cuales pueden aparecer tanto las palabras buscadas o bien sus sinónimos o raíces, por ejemplo dada la búsqueda `inteligentemente` los documentos que contengan `inteligencia` también serán devueltos, de manera similar ocurre con los sinónimos (ej: `perro` `can`)
+
+## Ejecutando el proyecto
+
+### Dependencias
+
+. .NET Core 6.0(necesaria)
+. Git (recomendable)
+. Make (3.1 o posterior)
+
+Primero deberás clonar este repo en github y como no, darle un strella 'https://github.com/theGitNoob/Moogle'
+una vez hecho esto nos movemos al directorio que contiene el proyecto y ejecutamos el siguiente comando:
+
+```bash
+make dev
+```
+
+Si le asignas la variable de entorno `CONTENT_PATH` la aplicación buscará en la ruta asignada sino, buscará por defecto en la carpeta `Content` que se encuentra en la raíz del proyecto
+
+## Implementación
+
+Primero hacer notar que el proyecto cuenta con 4 bibliotecas de clases principales:
 
 - `MoogleServer` es un servidor web que renderiza la interfaz gráfica y sirve los resultados.
-- `MoogleEngine` es una biblioteca de clases donde está... ehem... casi implementada la lógica del algoritmo de búsqueda.
-- `MoogleServer` es una biblioteca de clases que implementa la loǵica detrás de la manipulacion de los documentos
 
-## Algoritmo de Búsqueda
+- `MoogleEngine` este contiene la lógica a seguir durante la ejecución del algoritmo, en este por ejemplo se
+  realiza el indexado de la base de datos.
 
-El algoritmo de búsqueda está basado en el modelo de espacio vectorial, el cual modela cada documento y las queries en vectores donde las componentes de esos vectores son el tf-idf de cada término, esta manera de modelar los documentos y las queries permite conocidos dos vectores saber el grado de similitud entre ellos calculando el coseno del ángulo que se forma entre ellos.
+- `DocumentModel` en esta clase se encuentra todo lo relativo al trabajo con los documentos y el modelaje de estos como vectores, también contiene clases con utilidades relativas al trabajo con este.
 
-## TF_IDF
+- `Stemmer` por último esta clases se encarga de de hacerle stemming a las palabras usando el algoritmo `Snowball` (para más información 'https://snowballstem.org/').
 
-Al modelar los modelos como vectores, le asigamos como valor a cada componente el tf_idf asociado, el `TF` se usa para saber la frequencia de un termino en cada uno de los documentos y el `IDF` se encarga de que los términos que aparecen en más documentos sean menos relevantes.
+### Flujo de la aplicación
 
-## Caracteristicas
+#### Prepocesamiento
 
-Como todo todo motor de busqueda respetable😂, Moogle cuenta con diversas caracteristicas para hacerlo mas útil de cara al usuario, entre ellas se encuentran distintos operadores para hacer las busquedas más precisas, la inclusion en los resultados de búsqueda de palabras que tienen la misma raíz o el mismo significado, en caso de errores al escribir la palabra también se muestra una sugerencia de la posible palabra correcta.
+Durante el preprocesamiento también se llama al método `BuildDic` de la clase `SynonomusDB` el cual construye un base de datos con los sinónimos de las palabras.
 
-### Operadores
+Lo primero a la hora de iniciar la aplicación es el indexado de documentos llamando al método `StartIndex` de la clases `MoogleEngine`, este primero leerá uno a uno los documentos(`*.txt`) y procede a crear una nueva instancia de la clase documento, aquí se procede a guardad las palabras originales y sus posiciones para su posterio uso, luego se eliminan carácteres no alfanúmericos y se convierten a minusculas, una vez hecho esto se guarda la frecuencia de las palabras y de sus raíces además se calcula su TF para cada uno de los términos.
+Una vez hecho esto el documento creado será agregado a la colección estática de documentos y terminados todos los documentos se procede a calcular el IDF de estos. Una vez hecho esto la aplicación está lista para procesar las búsquedas de sus usuarios.
 
-**Operador de Cercannía**
+#### Búsqueda
 
-![project logo](cercania.png)
+Al hacerse una búsqueda se tokeniza la query mediante los mismos métodos usados para tokenizar los documentos, aquí también se guarda la frecuencia de los términos en la query y además se separan cada uno de los operadores usados en la búsqueda. Al terminar se llama al método `GetResults` el cual devuelve los documentos que se relacionan con la búsqueda junto con su respectivo `score` y `snippet`. Una vez obtenido el resultado se procede a hacer la sugerencia de búsqueda.
 
-- El operador de cercanía tiene por objetivo aumentar la relevancia de un documento en dependencia de que tan cercanas esten dichas palabras en el documento(Notar que se puede usar sobre dos o mas palabras)
+##### Implementación de los operadores
 
-**Operador de Relevancia**
+Para el operador de inclusión y exclusión se incluyen y excluyen los documentos que contengan los términos a excluir.
 
-![project logo](relevancia.png)
+Para el operador de relevancia se multiplica su score por la relevancia de dicha palabra, esto es, la palabra `****perro` tiene relevancia 4 por tantu su score será multiplicado por dicha cantidad.
 
-- El operador de relevancia aumenta la importancia de la(s) palabra(s), notar que este es acumulativo y mientras.
+El operador de cercanía implementa detrás la idea del algoritmo `sliding window` el cual busca la mínima ventana que contiene a todos los términos involucrados en este operador
 
-**Operador de Exclusión**
+##### Snippet
 
-- El símbolo `!` delante de una palabra (e.j., `"harry !potter"`) indica que la palabra `potter` no aparecerá en ningún documento que sea devuelto.
+A la hora de buscar los snippet de los documentos se trata de hallar una ventana de tamaño no mayor a 20 que contenga la mayor cantidad posible de términos de la búsqueda.
 
-**Operador de Inclusión**
+##### Algoritmo de Sugerencia
 
-- El símbolo `^` delante de una palabra (e.j., `"harry ^potter"`) indica que dicha palabra estará presente en cualquier documento que sea devuelto.
-
-### Sinónimos y Raíces
-
-- Para hacer las búsquedas un poco más flexibles se incluyen en los resultados de estas sus sinónimos y raíces aunque con una menor relevancia.
+El algoritmo de sugerencia consta de dos partes, primero se busca la palabra más cercana a cada uno de los términos, por cercanas se entiende que se tengas que hacer la mínima cantidad de cambios para transformar una en otra, esto se hace mediante el algoritmo de `Levenshtein`('https://en.wikipedia.org/wiki/Levenshtein_distance') terminado este proceso se sustituyen los términos de la query por los sugeridos y si estos aparecen más veces que los términos originales y los términos aparecen en menos de 5 documentos.
