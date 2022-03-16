@@ -398,8 +398,6 @@ public class Query : Document
     {
         StringBuilder newQuery = new StringBuilder();
 
-        bool flag = false;
-
         foreach (string term in this.Terms)
         {
             string misspell = DocumentCollection.GetMisspell(term);
@@ -408,6 +406,7 @@ public class Query : Document
 
             int termFreq = 0;
 
+            //Only appends suggestion if is in the Document collection
             if (DocumentCollection.Contains(term))
             {
                 termFreq = DocumentCollection.GetGlobalFrequency(term);
@@ -415,18 +414,16 @@ public class Query : Document
             else
             {
                 newQuery.Append(misspell + " ");
-                flag = true;
                 continue;
             }
 
 
+            //If the suggestion is on the document collection 
             if (DocumentCollection.Contains(misspell) && misspellFreq > termFreq && termFreq < 5)
             {
                 misspellFreq = DocumentCollection.GetGlobalFrequency(misspell);
 
                 newQuery.Append(misspell + " ");
-
-                flag = true;
             }
             else
             {
