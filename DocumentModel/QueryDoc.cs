@@ -93,7 +93,7 @@ public class Query : Document
 
         foreach (string cad in unescapedWords)
         {
-            string[] nearby = cad.Split("~").Distinct().ToArray();
+            string[] nearby = cad.Split("~").ToArray();
 
             if (nearby.Length == 1) continue;
 
@@ -325,8 +325,6 @@ public class Query : Document
     public List<Tuple<string, string, double>> GetResults()
     {
 
-        bool augmentQuery = _nearTerms.Count == 0;
-
         List<Tuple<string, string, double>> results = new List<Tuple<string, string, double>>();
 
         foreach (Document doc in DocumentCollection.Docs)
@@ -341,7 +339,6 @@ public class Query : Document
 
             foreach (string term in this.Data.Keys)
             {
-
                 double relevance = _termRelevance.ContainsKey(term) ? _termRelevance[term] + 1 : 1;
 
                 double query_idf = DocumentCollection.CalcIDF(term);
@@ -398,6 +395,8 @@ public class Query : Document
     {
         StringBuilder newQuery = new StringBuilder();
 
+        bool flag = false;
+
         foreach (string term in this._terms)
         {
             string misspell = DocumentCollection.GetMisspell(term);
@@ -413,6 +412,7 @@ public class Query : Document
             }
             else
             {
+                flag = true;
                 newQuery.Append(misspell + " ");
                 continue;
             }
@@ -424,6 +424,8 @@ public class Query : Document
                 misspellFreq = DocumentCollection.GetGlobalFrequency(misspell);
 
                 newQuery.Append(misspell + " ");
+
+                flag = true;
             }
             else
             {
@@ -434,7 +436,7 @@ public class Query : Document
         if (newQuery.Length != 0)
             newQuery.Remove(newQuery.Length - 1, 1);
 
-        return newQuery.ToString();
+        return (flag) ? newQuery.ToString() : "";
     }
 
 }

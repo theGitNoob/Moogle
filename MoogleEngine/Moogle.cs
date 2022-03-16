@@ -70,6 +70,6 @@ public static class Moogle
 
         string suggestion = QueryItem.GetSugestion();
 
-        return new SearchResult(items, suggestion.Trim() == query.ToLower().Trim() ? "" : suggestion);
+        return new SearchResult(items, suggestion);
     }
 }
