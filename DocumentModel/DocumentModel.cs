@@ -341,7 +341,9 @@ public class Document
 
             string trimmed = TermUtils.Trim(word).ToLower();
 
-            if (terms.Contains(trimmed))
+            string root = Stemmer.Stemm(trimmed);
+
+            if (terms.Contains(trimmed) || terms.Contains(root))
             {
                 snippet += word + "$$ ";
             }
@@ -380,15 +382,38 @@ public class Document
 
     public int FindClosestTerms(List<string[]> nearTerms)
     {
-        int MaxDistance = 0;
 
+        //Determines wheter a the terms are close enough
+        int maxDistance = 0;
+
+
+        //The sum of all distances
         int totalDistance = 0;
 
+        //Holds the frequency
+        Dictionary<string, int> freq = new Dictionary<string, int>();
+
+        Dictionary<int, int> freqById = new Dictionary<int, int>();
+
+        //Procces each group individually
         foreach (var items in nearTerms)
         {
             int counter = 0;
 
-            var dic = items.ToDictionary((key) => key, (key) => counter++);
+            foreach (string term in items)
+            {
+                if (freq.ContainsKey(term))
+                {
+                    freq[term]++;
+                }
+                else
+                {
+                    freq.Add(term, 1);
+                }
+            }
+
+            //Assigns an unique id
+            var dic = items.Distinct().ToDictionary((key) => key, (key) => counter++);
 
             List<Tuple<int, int>> positions = new List<Tuple<int, int>>();
 
@@ -398,13 +423,20 @@ public class Document
             {
                 string term = item.Key;
 
+                int id = item.Value;
+
+                //Does not calculate the distance if any term of them doesn't exist on the document
                 if (!this.Data.ContainsKey(term))
                 {
                     calcDistance = false;
                     break;
                 }
 
-                MaxDistance += 20;
+
+                //Only adds because each id are unique
+                freqById.Add(id, freq[term]);
+
+                maxDistance += 40;
 
                 List<int> termPositions = this.Data[term].Positions;
 
@@ -412,11 +444,12 @@ public class Document
 
                 foreach (int pos in termPositions)
                 {
-                    newPositions.Add(Tuple.Create(pos, item.Value));
+                    newPositions.Add(Tuple.Create(pos, id));
                 }
 
                 positions = MergeLists(positions, newPositions);
             }
+
             if (!calcDistance) continue;
 
             int[] onQueue = new int[counter];
@@ -435,7 +468,6 @@ public class Document
 
                 queue.Enqueue(item);
 
-
                 if (onQueue[id] == 0) cnt++;
 
                 onQueue[id]++;
@@ -444,7 +476,7 @@ public class Document
                 {
                     int firsItemId = queue.Peek().Item2;
 
-                    if (onQueue[firsItemId] > 1)
+                    if (onQueue[firsItemId] > freqById[firsItemId])
                     {
                         queue.Dequeue();
                         onQueue[firsItemId]--;
@@ -453,13 +485,18 @@ public class Document
                 }
                 if (cnt == counter)
                 {
-                    best = Math.Min(best, position - queue.Peek().Item1);
+                    int currDistance = position - queue.Peek().Item1;
+
+                    if (currDistance != 0)
+                        best = Math.Min(best, currDistance);
+
                 }
             }
+
             totalDistance += best;
         }
 
-        return (totalDistance == 0) ? 1 : MaxDistance / totalDistance;
+        return (totalDistance == 0 || maxDistance / totalDistance <= 0) ? 1 : maxDistance / totalDistance;
 
     }
     //
