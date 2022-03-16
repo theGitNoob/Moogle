@@ -1,108 +1,50 @@
-﻿using DocumentModel;
-using System.Text;
+﻿namespace MoogleEngine;
 
-namespace MoogleEngine;
+using DocumentModel;
 
 public static class Moogle
 {
-
-
     public static void StartIndex()
     {
-        // Console.WriteLine(Environment.GetEnvironmentVariables()["CONTENT_PATH"]);
+        string ContentPath = Environment.GetEnvironmentVariable("CONTENT_PATH") ?? Directory.GetParent(Directory.GetCurrentDirectory())!.ToString() + "/Content/";
 
-        Document.BuildDic("../sinonimos.json");
+        SynonomusDB.BuildDic("../sinonimos.json");
 
-        Document.InitDistance();
+        TermUtils.InitDistance();
 
-        var files = Directory.EnumerateFiles("../Content", "*.txt");
+        var files = Directory.EnumerateFiles(ContentPath, "*.txt");
 
         files = files.OrderBy(file => file);
 
-        foreach (string file in files)
+        foreach (string fileName in files)
         {
-            ReadFile(file);
+            string fullText = ReadFile(fileName);
+
+            Document doc = new Document(Path.GetFileNameWithoutExtension(fileName), fullText);
+
+            DocumentCollection.Add(doc);
         }
 
-        Document.FillWeigths();
+        DocumentCollection.FillWeigths();
 
     }
 
-    private static void ReadFile(string filePath)
+
+    private static string ReadFile(string fileName)
     {
-        StreamReader reader = new StreamReader(filePath);
+        StreamReader reader = new StreamReader(fileName);
 
         String fullText = reader.ReadToEnd();
 
-        Document doc = new Document(Path.GetFileName(filePath), fullText);
+        return fullText;
 
     }
     public static SearchResult Query(string query)
     {
-        query = query.ToLower();
 
-        string[] unescapedWord = Document.RemoveScape(query);
+        Query QueryItem = new Query(query);
 
-        List<string> excludedTerms = new List<string>();
-        List<string> mandatoryTerms = new List<string>();
-        List<Tuple<string, int>> relevantTerms = new List<Tuple<string, int>>();
-
-        //TODO:Cercania
-        List<string[]> nearTerms = new List<string[]>();
-
-        for (int idx = 0; idx < unescapedWord.Length; idx++)
-        {
-            string term = unescapedWord[idx];
-
-            if (term.Length == 0) continue;
-
-            string trimmed = Document.Trim(term);
-            switch (term[0])
-            {
-                case '!':
-                    excludedTerms.Add(trimmed);
-                    break;
-                case '*':
-                    int counter = 0;
-                    for (int j = 0; j < term.Length; j++)
-                    {
-                        if (term[j] == '*') counter++;
-                        else break;
-                    }
-                    relevantTerms.Add(Tuple.Create(trimmed, counter));
-                    break;
-                case '^':
-                    mandatoryTerms.Add(trimmed);
-                    break;
-            }
-        }
-
-        foreach (string cad in unescapedWord)
-        {
-            string[] nearby = cad.Split("~").Distinct().ToArray();
-
-            if (nearby.Length == 1) continue;
-
-            StringBuilder auxCad = new StringBuilder();
-
-            foreach (string term in nearby)
-            {
-                auxCad.Append(term + " ");
-            }
-
-            query = query.Replace(cad, auxCad.ToString());
-
-            nearTerms.Add(nearby);
-        }
-
-        excludedTerms = excludedTerms.Distinct().ToList();
-        mandatoryTerms = mandatoryTerms.Distinct().ToList();
-        relevantTerms = relevantTerms.Distinct().ToList();
-
-        //Tokenized query terms
-        string[] terms = Document.Tokenize(query);
-
-        var result = Document.queryVector(terms, excludedTerms, mandatoryTerms, relevantTerms, nearTerms);
+        var result = QueryItem.GetResults();
 
         SearchItem[] items = new SearchItem[result.Count];
 
@@ -113,46 +55,10 @@ public static class Moogle
             items[i] = new SearchItem(t.Item1, t.Item2, t.Item3);
         }
 
-
-        StringBuilder newQuery = new StringBuilder();
-
-        bool flag = false;
-
-        foreach (string term in terms)
-        {
-            string misspell = Document.GetMisspell(term);
-
-
-            int misspellFreq = 0;
-            int termFreq = 0;
-            if (Document.s_globalFreq.ContainsKey(term))
-            {
-
-                termFreq = Document.s_globalFreq[term];
-            }
-            else
-            {
-                newQuery.Append(misspell + " ");
-                flag = true;
-                continue;
-            }
-
-
-            if (Document.s_globalFreq.ContainsKey(misspell) && misspellFreq > termFreq && termFreq < 5)
-            {
-                misspellFreq = Document.s_globalFreq[misspell];
-                newQuery.Append(misspell + " ");
-                flag = true;
-            }
-            else newQuery.Append(term + " ");
-
-
-        }
-
-        if (newQuery.Length != 0)
-            newQuery.Remove(newQuery.Length - 1, 1);
         Array.Sort(items);
 
-        return new SearchResult(items, (flag) ? newQuery.ToString() : "");
+        string suggestion = QueryItem.GetSugestion();
+
+        return new SearchResult(items, suggestion.Trim() == query.ToLower().Trim() ? "" : suggestion);
     }
 }
