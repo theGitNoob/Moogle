@@ -1,4 +1,5 @@
-﻿namespace DocumentModel;
+﻿using System.Text;
+namespace DocumentModel;
 using Stemmer;
 public class Document
 {
@@ -131,9 +132,9 @@ public class Document
     {
         if (Data.ContainsKey(term))
         {
-            Data[term].frequency++;
+            Data[term].Frequency++;
 
-            int wordFreq = Data[term].frequency;
+            int wordFreq = Data[term].Frequency;
 
             if (wordFreq > MaxFrequency)
             {
@@ -169,7 +170,7 @@ public class Document
     {
         foreach (string key in Data.Keys)
         {
-            Data[key].TF = (Double)Data[key].frequency / this.MaxFrequency;
+            Data[key].TF = (Double)Data[key].Frequency / this.MaxFrequency;
         }
     }
 
@@ -328,7 +329,7 @@ public class Document
         }
 
 
-        string snippet = "";
+        StringBuilder snippet = new StringBuilder();
 
         int addedWords = 0;
 
@@ -345,17 +346,17 @@ public class Document
 
             if (terms.Contains(trimmed) || terms.Contains(root))
             {
-                snippet += word + "$$ ";
+                snippet.Append($"{word}$$ ");
             }
             else
             {
-                snippet += word + " ";
+                snippet.Append($"{word} ");
             }
             addedWords++;
 
         }
 
-        return snippet;
+        return snippet.ToString();
 
     }
 

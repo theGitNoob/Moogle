@@ -6,14 +6,20 @@ using Stemmer;
 public class Query : Document
 {
 
+    //Tokenized terms of the query
     private string[] _terms = new string[0];
 
+    //Terms that should be excluded
     private string[] _excludedTerms = new string[0];
 
+    //Terms that should be included
     private string[] _mandatoryTerms = new string[0];
 
+
+    //Holds the relevance of each term according to the relevance operator
     private Dictionary<string, int> _termRelevance = new Dictionary<string, int>();
 
+    //Groups of terms that should appear together
     private List<string[]> _nearTerms = new List<string[]>();
 
     //Used to check wheter the normal form of a term is given on the query
@@ -101,7 +107,7 @@ public class Query : Document
 
             foreach (string term in nearby)
             {
-                auxCad.Append(term + " ");
+                auxCad.Append($"{term} ");
             }
 
             query = query.Replace(cad, auxCad.ToString());
@@ -222,9 +228,9 @@ public class Query : Document
     {
         if (this.Data.ContainsKey(term))
         {
-            this.Data[term].frequency++;
+            this.Data[term].Frequency++;
 
-            int wordFreq = this.Data[term].frequency;
+            int wordFreq = this.Data[term].Frequency;
 
             if (wordFreq > MaxFrequency)
             {
@@ -275,7 +281,7 @@ public class Query : Document
 
         string[] terms = TermUtils.Tokenize(query);
 
-        MaxFrequency = 1;
+        this.MaxFrequency = 1;
 
         SaveTerms(terms);
 
@@ -300,22 +306,22 @@ public class Query : Document
     //
     private string[] GenSnippetTerms(Document doc)
     {
-        List<string> TermList = new List<string>();
+        List<string> termList = new List<string>();
 
         foreach (string key in _normalWords)
         {
             if (doc.ContainsTerm(key))
             {
-                TermList.Add(key);
+                termList.Add(key);
             }
             else
             {
-                TermList.Add(Stemmer.Stemm(key));
-                TermList.AddRange(SynonomusDB.GetSynonomus(key));
+                termList.Add(Stemmer.Stemm(key));
+                termList.AddRange(SynonomusDB.GetSynonomus(key));
             }
         }
 
-        return TermList.ToArray();
+        return termList.ToArray();
     }
 
     /// <summary>
@@ -341,27 +347,27 @@ public class Query : Document
             {
                 double relevance = _termRelevance.ContainsKey(term) ? _termRelevance[term] + 1 : 1;
 
-                double query_idf = DocumentCollection.CalcIDF(term);
+                double queryIdf = DocumentCollection.CalcIDF(term);
 
                 bool isRoot = _stemmedWords.Contains(term) == true;
 
                 bool isSyn = isRoot == false && _relatedWords.Contains(term) == true;
 
-                double query_weigth = CalcWeigth(term, query_idf) * (relevance);
+                double queryWeigth = CalcWeigth(term, queryIdf) * (relevance);
 
                 if (isRoot)
                 {
-                    query_weigth *= 0.5;
+                    queryWeigth *= 0.5;
 
                 }
                 else if (isSyn)
                 {
-                    query_weigth *= 0.1;
+                    queryWeigth *= 0.1;
                 }
 
-                double doc_weigth = doc.CalcWeigth(term, DocumentCollection.CalcIDF(term));
+                double docWeigth = doc.CalcWeigth(term, DocumentCollection.CalcIDF(term));
 
-                dotProd += (doc_weigth * query_weigth);
+                dotProd += (docWeigth * queryWeigth);
 
             }
 
@@ -413,7 +419,7 @@ public class Query : Document
             else
             {
                 flag = true;
-                newQuery.Append(misspell + " ");
+                newQuery.Append($"{misspell} ");
                 continue;
             }
 
@@ -423,13 +429,13 @@ public class Query : Document
             {
                 misspellFreq = DocumentCollection.GetGlobalFrequency(misspell);
 
-                newQuery.Append(misspell + " ");
+                newQuery.Append($"{misspell} ");
 
                 flag = true;
             }
             else
             {
-                newQuery.Append(term + " ");
+                newQuery.Append($"{term} ");
             }
         }
 

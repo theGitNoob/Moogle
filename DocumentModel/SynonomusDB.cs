@@ -10,8 +10,10 @@ namespace DocumentModel
     public static class SynonomusDB
     {
 
+        //Holds the position of each term on the distincts groups of synonomus
         private static Dictionary<string, List<int>> s_synonomusPositions = new Dictionary<string, List<int>>();
 
+        //Holds the distinct groups of synonomus
         private static List<List<string>> s_syns = new List<List<string>>();
 
         //
